@@ -1,0 +1,3016 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f2f6fc">
+<style>html,body{margin:0}</style>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+<title>Кеңістік 3D</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: one phone-width column. Bottom tab bar (Курс, Практика, Сөздік, ҰБТ, Профиль); a lesson player replaces the tabs while a lesson runs.
+   One bright theme on purpose: the tool is used on classroom panels and in daylight. */
+:root {
+  --bg: #f2f6fc;
+  --card: #ffffff;
+  --ink: #1b2742;
+  --muted: #5a6985;
+  --line: #d6dff0;
+  --accent: #2f62d6;
+  --accent-dark: #234db0;
+  --accent-soft: #e4ecfc;
+  --ok: #17825a;
+  --ok-soft: #dff4ea;
+  --bad: #c93a54;
+  --bad-soft: #fde7eb;
+  --warm: #d9682b;
+  --font: 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 500 15px/1.5 var(--font);
+  padding-inline: 16px;
+  padding-block: 18px 96px;
+}
+.app { max-width: 520px; margin: 0 auto; }
+h1 { font-size: 25px; line-height: 1.15; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 19px; line-height: 1.25; font-weight: 800; margin: 0; text-wrap: balance; }
+h3 { font-size: 16px; line-height: 1.3; font-weight: 800; margin: 0; }
+p { margin: 0; }
+button { font-family: var(--font); }
+.sub { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.view { display: flex; flex-direction: column; gap: 14px; }
+.topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.pill { font-size: 13px; font-weight: 800; background: var(--card); border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; color: var(--warm); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.hero { background: var(--accent-soft); border: 1px solid #c3d4f5; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent-dark); }
+.hint { color: var(--muted); font-size: 14px; }
+.chip { align-self: flex-start; font-size: 12px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-dark); background: var(--accent-soft); padding: 4px 10px; border-radius: 99px; }
+
+.bar { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 5px; }
+.bar i { height: 7px; border-radius: 4px; background: #dbe3f2; }
+.bar i.ok { background: var(--ok); }
+.bar i.bad { background: var(--bad); }
+.bar i.done { background: #8fb0f5; }
+.bar i.cur { background: var(--accent); }
+
+.btn {
+  font: 800 16px var(--font); border-radius: 14px; padding: 13px 16px; cursor: pointer; min-width: 0;
+  border: 2px solid var(--line); background: var(--card); color: var(--ink); border-bottom-width: 4px; text-align: center;
+}
+.btn:hover { border-color: #b9c8e6; }
+.btn.primary { background: var(--accent); border-color: var(--accent-dark); color: #fff; }
+.btn.primary:hover { background: #2a58c4; }
+.btn.small { font-size: 13px; padding: 6px 10px; border-bottom-width: 3px; border-radius: 10px; }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.btn.ok { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.btn.bad { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+.btn:focus-visible, .tab:focus-visible, .cell:focus-visible, .nav-btn:focus-visible, .lesson:focus-visible, .icon-btn:focus-visible { outline: 3px solid #8fb0f5; outline-offset: 2px; }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
+
+.topic { display: flex; flex-direction: column; gap: 10px; }
+.topic-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.topic-head span { font-size: 13px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lessons { display: flex; flex-direction: column; gap: 6px; }
+.lesson {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+  background: #f6f9fe; border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; color: var(--ink); font: 700 15px var(--font);
+}
+.lesson:hover { border-color: #b3c4e6; }
+.lesson .t { flex: 1; min-width: 0; }
+.lesson .n { font-size: 12.5px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.dot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px; background: #e1e9f9; color: var(--accent-dark); flex: none; }
+.dot.done { background: var(--ok); color: #fff; }
+
+.stage { position: relative; border-radius: 14px; background: radial-gradient(circle at 50% 40%, #ffffff 0%, #eef3fc 100%); border: 1px solid var(--line); overflow: hidden; }
+.stage canvas { display: block; width: 100%; height: 320px; touch-action: none; cursor: grab; }
+.stage canvas:active { cursor: grabbing; }
+.stage .reset { position: absolute; top: 8px; right: 8px; }
+.nogl { padding: 40px 16px; text-align: center; color: var(--muted); }
+
+.player { display: flex; flex-direction: column; gap: 12px; }
+.p-top { display: flex; align-items: center; gap: 12px; }
+.p-top .bar { flex: 1; }
+.icon-btn { width: 40px; height: 40px; border-radius: 12px; border: 2px solid var(--line); border-bottom-width: 4px; background: var(--card); font: 800 20px var(--font); color: var(--ink); cursor: pointer; flex: none; }
+.answers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fb { border-radius: 14px; padding: 12px 14px; font-size: 14.5px; }
+.fb b { display: block; font-size: 16px; margin-bottom: 2px; }
+.fb.ok { background: var(--ok-soft); color: #0f5d40; }
+.fb.bad { background: var(--bad-soft); color: #8d2438; }
+.score { font-size: 54px; font-weight: 800; line-height: 1; color: var(--accent-dark); font-variant-numeric: tabular-nums; }
+.score span { font-size: 28px; color: var(--muted); }
+
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: #e2e9f6; padding: 5px; border-radius: 14px; }
+.tab { font: 800 15px var(--font); color: var(--muted); background: transparent; border: 0; padding: 10px 8px; border-radius: 10px; cursor: pointer; min-width: 0; }
+.tab[aria-selected="true"] { background: var(--card); color: var(--accent-dark); box-shadow: 0 1px 3px rgba(27, 39, 66, 0.15); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.status { border-radius: 12px; padding: 10px 12px; font-size: 14.5px; background: #f4f7fd; color: var(--ink); }
+.status.ok { background: var(--ok-soft); color: #0f5d40; }
+.status.bad { background: var(--bad-soft); color: #8d2438; }
+.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.cell { aspect-ratio: 1; min-width: 0; border-radius: 8px; border: 2px solid var(--line); background: #f6f9fe; font: 800 20px var(--font); color: #fff; cursor: pointer; padding: 0; }
+.cell:hover { border-color: #b3c4e6; }
+.cell.on { background: var(--accent); border-color: var(--accent-dark); }
+.cell.bad { background: var(--bad); border-color: #a22c42; }
+.opp { font-size: 14px; color: var(--muted); }
+.opp b { color: var(--ink); }
+
+.stats4 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 2px; }
+.stat b { font-size: 28px; line-height: 1.1; font-weight: 800; color: var(--accent-dark); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 13px; color: var(--muted); font-weight: 700; }
+.mini span:last-child { white-space: nowrap; }
+.mini { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; background: #f4f7fd; border-radius: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+#nav { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); padding: 6px 10px calc(8px + env(safe-area-inset-bottom, 0px)); }
+#nav .in { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+.nav-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 0; background: transparent; color: var(--muted); font: 800 12px var(--font); padding: 6px 2px; border-radius: 12px; cursor: pointer; min-width: 0; }
+.nav-btn svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.nav-btn[aria-selected="true"] { color: var(--accent-dark); background: var(--accent-soft); }
+.foot { font-size: 12.5px; color: var(--muted); text-align: center; }
+
+.tabs.three { grid-template-columns: repeat(3, 1fr); }
+.tabs.three .tab { font-size: 13.5px; padding: 10px 4px; }
+.note { background: #fff7e6; border: 1px solid #f1d9a0; color: #6b4b00; border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+.actions .btn { flex: 1 1 auto; }
+.actions .btn.small { flex: 0 0 auto; }
+.pchip { display: flex; align-items: center; gap: 8px; background: #f4f7fd; border: 1px solid var(--line); border-radius: 12px; padding: 6px 8px; width: 100%; font-size: 14px; }
+.pdot { width: 26px; height: 26px; border-radius: 50%; color: #fff; display: grid; place-items: center; font-weight: 800; flex: none; }
+.ptxt { flex: 1; min-width: 0; }
+.px { border: 0; background: transparent; color: var(--muted); font: 800 20px var(--font); width: 32px; height: 32px; cursor: pointer; border-radius: 8px; }
+.px:hover { background: #e4ebf8; }
+.chip-btn { font: 800 15px var(--font); min-width: 44px; height: 40px; padding: 0 10px; border-radius: 10px; border: 2px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+.chip-btn.on { background: var(--accent); border-color: var(--accent-dark); color: #fff; }
+.dims { background: #f6f9fe; border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+.dims summary { font-weight: 800; cursor: pointer; padding: 4px 0; }
+.dim { display: grid; grid-template-columns: 82px 1fr 34px; align-items: center; gap: 8px; padding: 6px 0; font-size: 14px; }
+.dim input { width: 100%; accent-color: var(--accent); }
+.dim b { text-align: right; font-variant-numeric: tabular-nums; }
+.panel { background: #f6f9fe; border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.panel-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.panel .row .btn { flex: 1; }
+.log { max-height: 190px; overflow: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.logline { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; }
+textarea { width: 100%; font: 500 15px/1.45 var(--font); color: var(--ink); background: #f6f9fe; border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; resize: vertical; }
+textarea:focus-visible { outline: 3px solid #8fb0f5; outline-offset: 1px; }
+.file { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 700; color: var(--muted); }
+.file input { font: 500 14px var(--font); }
+.gl summary { font-weight: 800; cursor: pointer; }
+.gl-it { padding: 8px 0 0; border-top: 1px solid var(--line); }
+.gl-it b { font-size: 15px; }
+#gl-q { font: 500 16px var(--font); padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); width: 100%; box-sizing: border-box; }
+</style>
+
+<div class="app">
+  <main id="main">
+    <!-- Курс -->
+    <section class="view" id="v-course">
+      <div class="topbar">
+        <div>
+          <h1>Кеңістік 3D</h1>
+          <p class="sub">Стереометрия · 10–11 сынып · ҰБТ</p>
+        </div>
+        <span class="pill" id="streak-pill"></span>
+      </div>
+      <div class="hero">
+        <span class="eyebrow" id="hero-eyebrow"></span>
+        <h2 id="hero-title"></h2>
+        <p class="hint" id="hero-sub"></p>
+        <div class="bar" id="hero-bar"></div>
+        <button class="btn primary" id="hero-go" type="button"></button>
+      </div>
+      <div id="topics" class="view"></div>
+    </section>
+
+    <!-- Практика -->
+    <section class="view" id="v-sandbox" hidden>
+      <div>
+        <h1>Практика</h1>
+        <p class="sub">Есептерді өзің тұрғыз: қима, жазба, 3D есеп</p>
+      </div>
+      <div class="tabs" role="tablist" id="sb-tabs">
+        <button class="tab" role="tab" id="sb-tab-sec" aria-selected="true">Қима</button>
+        <button class="tab" role="tab" id="sb-tab-net" aria-selected="false">Жазба → куб</button>
+        <button class="tab" role="tab" id="sb-tab-ai" aria-selected="false" hidden>Есеп → 3D</button>
+      </div>
+
+      <div class="card" id="sb-sec">
+        <div class="tabs" role="tablist" aria-label="Режим">
+          <button class="tab" role="tab" id="mode-simple" aria-selected="true">Қарапайым</button>
+          <button class="tab" role="tab" id="mode-adv" aria-selected="false">Кеңейтілген</button>
+        </div>
+        <p class="hint" id="sb-hint">Қарапайым режим: нүктелер төбеге немесе қырдың ортасына қойылады. «Қию» түймесі қиманы көрсетеді, «Қадамдап талдау» тұрғызуды түсіндіреді.</p>
+        <p class="note" id="sb-note" hidden></p>
+        <div class="row" id="sb-figs"></div>
+        <div class="stage">
+          <canvas id="cv2" aria-label="3D фигура. Нүкте қою үшін түртіңіз, айналдыру үшін сүйреңіз."></canvas>
+          <button class="btn small reset" id="sb-reset" type="button">Бастапқы көрініс</button>
+        </div>
+        <details class="dims">
+          <summary>Пропорциялар</summary>
+          <label class="dim"><span>Ұзындығы</span><input type="range" id="dim-x" min="0.6" max="1.6" step="0.05" value="1"><b id="dim-x-v">1</b></label>
+          <label class="dim"><span>Биіктігі</span><input type="range" id="dim-y" min="0.6" max="1.6" step="0.05" value="1"><b id="dim-y-v">1</b></label>
+          <label class="dim"><span>Ені</span><input type="range" id="dim-z" min="0.6" max="1.6" step="0.05" value="1"><b id="dim-z-v">1</b></label>
+          <button class="btn small" id="dims-reset" type="button">Түзу пішінге қайтару</button>
+        </details>
+        <div class="row" id="sb-chips"></div>
+        <div class="status" id="sb-status" aria-live="polite"></div>
+        <div class="row actions">
+          <button class="btn primary" id="sb-cut" type="button">Қию</button>
+          <button class="btn" id="sb-analyze" type="button">Қадамдап талдау</button>
+          <button class="btn primary" id="sb-build" type="button">Өзім тұрғызамын</button>
+          <button class="btn small" id="sb-back" type="button" hidden>Нүктелерге оралу</button>
+          <button class="btn small" id="sb-clear" type="button">Тазалау</button>
+        </div>
+        <div id="sb-panel" hidden>
+          <div id="sb-an" class="panel" hidden>
+            <div class="panel-top"><span class="chip" id="an-kind"></span><span class="hint" id="an-count"></span></div>
+            <p id="an-text"></p>
+            <div class="row"><button class="btn" id="an-prev" type="button">Алдыңғы</button><button class="btn primary" id="an-next" type="button">Келесі</button></div>
+          </div>
+          <div id="sb-own" class="panel" hidden>
+            <div class="panel-top"><span class="chip">Өзім тұрғызамын</span><span class="hint" id="own-prog"></span></div>
+            <div class="status" id="own-status" aria-live="polite"></div>
+            <div class="log" id="own-log"></div>
+            <div class="row"><button class="btn" id="own-hint" type="button">Көмек</button><button class="btn" id="own-solve" type="button">Шешімді көрсет</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="sb-ai" hidden>
+        <p class="hint">Есептің мәтінін жаз немесе сызбасының суретін жүкте. Claude фигураны және нүктелерді анықтап, Практикаға салып береді. Нәтижені есеп шартымен салыстырып тексер.</p>
+        <textarea id="ai-text" rows="5" placeholder="Мысалы: ABCDA₁B₁C₁D₁ кубында M нүктесі AB қырының ортасы, N нүктесі CC₁ қырының ортасы, K нүктесі A₁D₁ қырының ортасы. MNK жазықтығымен қиманы тұрғыз."></textarea>
+        <label class="file" id="ai-photo-wrap" hidden><span>Сурет (міндетті емес)</span><input type="file" id="ai-photo" accept="image/*"></label>
+        <button class="btn primary" id="ai-go" type="button">3D-ге ауыстыру</button>
+        <div class="status" id="ai-status" aria-live="polite" hidden></div>
+        <p class="foot">Бұл функция Claude-ты қолданады: нәтиже бетті ашқан адамның Claude лимитінен есептеледі, алғашқы рет рұқсат сұралады.</p>
+      </div>
+
+      <div class="card" id="sb-net" hidden>
+        <p class="hint">Торда 6 шаршыны түртіп таңда. Тренажер оның кубқа жиналатынын тексереді және әр шаршы қай жаққа түсетінін көрсетеді.</p>
+        <div class="grid" id="grid" role="group" aria-label="Жазба торы"></div>
+        <div class="row" id="presets"></div>
+        <div class="status" id="nstatus" aria-live="polite"></div>
+        <div class="stage"><canvas id="cv3" aria-label="Куб. Айналдыру үшін сүйреңіз."></canvas></div>
+        <p class="opp" id="opp"></p>
+      </div>
+    </section>
+
+    <!-- Сөздік -->
+    <section class="view" id="v-gloss" hidden>
+      <div>
+        <h1>Сөздік</h1>
+        <p class="sub">10–11 сынып геометрия оқулықтарының терминдері</p>
+      </div>
+      <input id="gl-q" type="search" placeholder="Термин іздеу" aria-label="Термин іздеу">
+      <button class="btn primary" id="gl-quiz" type="button">Терминдер сынағы · 5 сұрақ</button>
+      <div id="gl-list" class="view"></div>
+    </section>
+
+    <!-- ҰБТ -->
+    <section class="view" id="v-ubt" hidden>
+      <div>
+        <h1>ҰБТ режимі</h1>
+        <p class="sub">Стереометрия есептері: бұрыш, қашықтық, көлем</p>
+      </div>
+      <div class="hero">
+        <span class="eyebrow">Сынақ тапсырма</span>
+        <h2>Аралас жаттығу</h2>
+        <p class="hint">Барлық тақырыптан 5 есеп. Әр есептің шешуі жауаптан кейін көрсетіледі.</p>
+        <button class="btn primary" id="ubt-mix" type="button">Бастау</button>
+      </div>
+      <div id="ubt-topics" class="view"></div>
+    </section>
+
+    <!-- Профиль -->
+    <section class="view" id="v-profile" hidden>
+      <div>
+        <h1>Профиль</h1>
+        <p class="sub" id="pf-name"></p>
+      </div>
+      <div class="stats4" id="pf-stats"></div>
+      <div class="card">
+        <h3>Тақырыптар бойынша</h3>
+        <div id="pf-topics" class="view" style="gap:8px"></div>
+      </div>
+      <button class="btn" id="pf-reset" type="button">Прогресті өшіру</button>
+    </section>
+  </main>
+
+  <!-- Сабақ ойыншысы -->
+  <section class="player" id="player" hidden>
+    <div class="p-top">
+      <button class="icon-btn" id="p-close" type="button" aria-label="Жабу">×</button>
+      <div class="bar" id="p-bar"></div>
+    </div>
+    <div id="p-play" class="player">
+      <div class="stage">
+        <canvas id="cv1" aria-label="3D фигура. Айналдыру үшін сүйреңіз."></canvas>
+        <button class="btn small reset" id="p-reset" type="button">Бастапқы көрініс</button>
+      </div>
+      <div class="card">
+        <span class="chip" id="p-chip"></span>
+        <h2 id="p-title"></h2>
+        <p class="hint" id="p-body"></p>
+        <div class="answers" id="p-answers"></div>
+        <div id="p-fb" aria-live="polite"></div>
+        <button class="btn primary" id="p-next" type="button" hidden>Жалғастыру</button>
+        <button class="btn" id="p-cta" type="button" hidden></button>
+      </div>
+    </div>
+    <div class="card" id="p-result" hidden>
+      <span class="chip">Нәтиже</span>
+      <div class="score" id="r-score"></div>
+      <p id="r-verdict"></p>
+      <p class="hint" id="r-xp"></p>
+      <div class="row">
+        <button class="btn primary" id="r-again" type="button">Қайта өту</button>
+        <button class="btn" id="r-close" type="button">Жабу</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav id="nav" aria-label="Бөлімдер">
+  <div class="in">
+    <button class="nav-btn" data-v="course" aria-selected="true"><svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8.2 18H14a3.5 3.5 0 0 0 0-7h-4a3.5 3.5 0 0 1 0-7h5.8"/></svg>Курс</button>
+    <button class="nav-btn" data-v="sandbox" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>Практика</button>
+    <button class="nav-btn" data-v="gloss" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/></svg>Сөздік</button>
+    <button class="nav-btn" data-v="ubt" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>ҰБТ</button>
+    <button class="nav-btn" data-v="profile" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.4 7-5.4s6.2 1.8 7 5.4"/></svg>Профиль</button>
+  </div>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+/*NET_START*/
+function checkNet(cells) {
+  var key = function (r, c) { return r + ',' + c; };
+  var set = new Map(cells.map(function (p) { return [key(p[0], p[1]), p]; }));
+  if (cells.length < 6) return { ok: false, reason: 'few', need: 6 - cells.length };
+  if (cells.length > 6) return { ok: false, reason: 'many' };
+  for (var i = 0; i < cells.length; i++) {
+    var r = cells[i][0], c = cells[i][1];
+    if (set.has(key(r, c + 1)) && set.has(key(r + 1, c)) && set.has(key(r + 1, c + 1))) {
+      return { ok: false, reason: 'block' };
+    }
+  }
+  var sorted = cells.slice().sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+  var roll = {
+    E: function (d) { return { top: d.west, bottom: d.east, east: d.top, west: d.bottom, north: d.north, south: d.south }; },
+    W: function (d) { return { top: d.east, bottom: d.west, west: d.top, east: d.bottom, north: d.north, south: d.south }; },
+    N: function (d) { return { top: d.south, bottom: d.north, north: d.top, south: d.bottom, east: d.east, west: d.west }; },
+    S: function (d) { return { top: d.north, bottom: d.south, south: d.top, north: d.bottom, east: d.east, west: d.west }; }
+  };
+  var dirs = [['E', 0, 1], ['W', 0, -1], ['N', -1, 0], ['S', 1, 0]];
+  var queue = [{ cell: sorted[0], die: { top: 0, bottom: 1, north: 2, south: 3, east: 4, west: 5 } }];
+  var seen = new Set([key(sorted[0][0], sorted[0][1])]);
+  var order = [];
+  while (queue.length) {
+    var it = queue.shift();
+    order.push({ r: it.cell[0], c: it.cell[1], n: order.length + 1, face: it.die.bottom });
+    for (var k = 0; k < dirs.length; k++) {
+      var nr = it.cell[0] + dirs[k][1], nc = it.cell[1] + dirs[k][2];
+      var kk = key(nr, nc);
+      if (set.has(kk) && !seen.has(kk)) {
+        seen.add(kk);
+        queue.push({ cell: [nr, nc], die: roll[dirs[k][0]](it.die) });
+      }
+    }
+  }
+  if (order.length < 6) return { ok: false, reason: 'disc' };
+  var byFace = {};
+  for (var j = 0; j < order.length; j++) {
+    var f = order[j].face;
+    if (byFace[f] !== undefined) return { ok: false, reason: 'dup', a: byFace[f], b: order[j].n, order: order };
+    byFace[f] = order[j].n;
+  }
+  var opp = [[byFace[0], byFace[1]], [byFace[2], byFace[3]], [byFace[4], byFace[5]]]
+    .map(function (p) { return p.slice().sort(function (a, b) { return a - b; }); })
+    .sort(function (a, b) { return a[0] - b[0]; });
+  return { ok: true, order: order, opp: opp };
+}
+/*NET_END*/
+
+/*GEO_START*/
+var LET = 'ABCDEF';
+function makeSpec(kind, n) {
+  var V = [], F = [], names = [], i;
+  var R = kind === 'prism' ? (n === 4 ? Math.SQRT2 : 1.3) : (n === 4 ? 1.35 : 1.3);
+  var off = n === 4 ? Math.PI / 4 : -Math.PI / 2;
+  var P = [];
+  for (i = 0; i < n; i++) {
+    var a = (2 * Math.PI * i) / n + off;
+    P.push([R * Math.cos(a), R * Math.sin(a)]);
+  }
+  var baseIds, apex = -1;
+  if (kind === 'prism') {
+    for (i = 0; i < n; i++) { V.push(new THREE.Vector3(P[i][0], -1, P[i][1])); names.push(LET[i]); }
+    for (i = 0; i < n; i++) { V.push(new THREE.Vector3(P[i][0], 1, P[i][1])); names.push(LET[i] + '₁'); }
+    var bot = [], top = [];
+    for (i = 0; i < n; i++) { bot.push(i); top.push(n + i); }
+    F.push(bot, top);
+    for (i = 0; i < n; i++) F.push([i, (i + 1) % n, n + ((i + 1) % n), n + i]);
+    baseIds = [0, 1];
+  } else {
+    for (i = 0; i < n; i++) { V.push(new THREE.Vector3(P[i][0], -1, P[i][1])); names.push(LET[i]); }
+    V.push(new THREE.Vector3(0, 1.25, 0)); names.push('S');
+    apex = n;
+    var b = [];
+    for (i = 0; i < n; i++) b.push(i);
+    F.push(b);
+    for (i = 0; i < n; i++) F.push([i, (i + 1) % n, n]);
+    baseIds = [0];
+  }
+  var eMap = {}, edges = [];
+  F.forEach(function (f, fi) {
+    for (var k = 0; k < f.length; k++) {
+      var p = f[k], q = f[(k + 1) % f.length];
+      var kk = Math.min(p, q) + '-' + Math.max(p, q);
+      if (!eMap[kk]) { eMap[kk] = { a: Math.min(p, q), b: Math.max(p, q), faces: [] }; edges.push(eMap[kk]); }
+      eMap[kk].faces.push(fi);
+    }
+  });
+  edges.forEach(function (e) {
+    e.base = e.faces.some(function (fi) { return baseIds.indexOf(fi) >= 0; });
+    e.mid = V[e.a].clone().add(V[e.b]).multiplyScalar(0.5);
+  });
+  return { kind: kind, n: n, V: V, F: F, edges: edges, baseIds: baseIds, apex: apex, names: names };
+}
+function edgeIdx(spec, a, b) {
+  var lo = Math.min(a, b), hi = Math.max(a, b);
+  for (var i = 0; i < spec.edges.length; i++) if (spec.edges[i].a === lo && spec.edges[i].b === hi) return i;
+  return -1;
+}
+function edgeName(spec, i) { return spec.names[spec.edges[i].a] + spec.names[spec.edges[i].b]; }
+function faceName(spec, fi) { return spec.F[fi].map(function (v) { return spec.names[v]; }).join(''); }
+function edgeRel(spec, i, j) {
+  var a = spec.edges[i], b = spec.edges[j];
+  var u = spec.V[a.b].clone().sub(spec.V[a.a]), v = spec.V[b.b].clone().sub(spec.V[b.a]);
+  if (u.clone().cross(v).length() < 1e-6) return 'par';
+  if (a.a === b.a || a.a === b.b || a.b === b.a || a.b === b.b) return 'int';
+  return 'skew';
+}
+function edgePerpToFace(spec, ei, fi) {
+  var f = spec.F[fi];
+  var v0 = spec.V[f[0]], v1 = spec.V[f[1]], v2 = spec.V[f[2]];
+  var n = v1.clone().sub(v0).cross(v2.clone().sub(v1)).normalize();
+  var e = spec.edges[ei];
+  var u = spec.V[e.b].clone().sub(spec.V[e.a]).normalize();
+  return Math.abs(u.dot(n)) > 0.999;
+}
+function candidates(spec) {
+  var c = [], i;
+  for (i = 0; i < spec.V.length; i++) c.push({ pos: spec.V[i].clone(), kind: 'v', id: i });
+  for (i = 0; i < spec.edges.length; i++) c.push({ pos: spec.edges[i].mid.clone(), kind: 'm', id: i });
+  return c;
+}
+function sectionPolygon(spec, p) {
+  var n = p[1].clone().sub(p[0]).cross(p[2].clone().sub(p[0]));
+  if (n.length() < 1e-6) return null;
+  n.normalize();
+  var eps = 1e-6, pts = [];
+  var add = function (v) {
+    for (var i = 0; i < pts.length; i++) if (pts[i].distanceTo(v) < 1e-5) return;
+    pts.push(v.clone());
+  };
+  spec.edges.forEach(function (e) {
+    var A = spec.V[e.a], B = spec.V[e.b];
+    var da = n.dot(A.clone().sub(p[0])), db = n.dot(B.clone().sub(p[0]));
+    if (Math.abs(da) < eps) add(A);
+    if (Math.abs(db) < eps) add(B);
+    if (da * db < -eps * eps) add(A.clone().add(B.clone().sub(A).multiplyScalar(da / (da - db))));
+  });
+  if (pts.length < 3) return null;
+  var c = new THREE.Vector3();
+  pts.forEach(function (v) { c.add(v); });
+  c.multiplyScalar(1 / pts.length);
+  var u = pts[0].clone().sub(c).normalize();
+  var w = n.clone().cross(u);
+  pts.sort(function (a, b) {
+    return Math.atan2(a.clone().sub(c).dot(w), a.clone().sub(c).dot(u)) - Math.atan2(b.clone().sub(c).dot(w), b.clone().sub(c).dot(u));
+  });
+  return pts;
+}
+/*ENGINE_START*/
+var SUB = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
+function scaleSpec(spec, sx, sy, sz) {
+  var V = spec.V.map(function (v) { return new THREE.Vector3(v.x * sx, v.y * sy, v.z * sz); });
+  var s2 = Object.assign({}, spec, { V: V });
+  s2.edges = spec.edges.map(function (e) {
+    var ne = Object.assign({}, e);
+    ne.mid = V[e.a].clone().add(V[e.b]).multiplyScalar(0.5);
+    return ne;
+  });
+  return s2;
+}
+function planeOf(p) {
+  var n = p[1].clone().sub(p[0]).cross(p[2].clone().sub(p[0]));
+  if (n.length() < 1e-6) return null;
+  n.normalize();
+  return { n: n, d: n.dot(p[0]) };
+}
+function facePlane(spec, fi) {
+  var f = spec.F[fi], v0 = spec.V[f[0]], v1 = spec.V[f[1]], v2 = spec.V[f[2]];
+  var n = v1.clone().sub(v0).cross(v2.clone().sub(v1)).normalize();
+  return { n: n, d: n.dot(v0) };
+}
+function inFace(spec, fi, p, tol) {
+  tol = tol || 1e-5;
+  var pl = facePlane(spec, fi);
+  if (Math.abs(pl.n.dot(p) - pl.d) > tol) return false;
+  var f = spec.F[fi];
+  for (var k = 0; k < f.length; k++) {
+    var a = spec.V[f[k]], b = spec.V[f[(k + 1) % f.length]];
+    if (b.clone().sub(a).cross(p.clone().sub(a)).dot(pl.n) < -tol) return false;
+  }
+  return true;
+}
+function edgeLineHit(spec, plane, ei) {
+  var A = spec.V[spec.edges[ei].a], B = spec.V[spec.edges[ei].b];
+  var dir = B.clone().sub(A), den = plane.n.dot(dir), da = plane.n.dot(A) - plane.d;
+  if (Math.abs(den) < 1e-9) return Math.abs(da) < 1e-6 ? { on: true } : null;
+  var t = -da / den;
+  return { t: t, pos: A.clone().add(dir.multiplyScalar(t)) };
+}
+function faceSide(spec, plane, fi) {
+  var f = spec.F[fi], pts = [], i, j;
+  var add = function (v) {
+    for (var q = 0; q < pts.length; q++) if (pts[q].distanceTo(v) < 1e-5) return;
+    pts.push(v.clone());
+  };
+  for (var k = 0; k < f.length; k++) {
+    var A = spec.V[f[k]], B = spec.V[f[(k + 1) % f.length]];
+    var da = plane.n.dot(A) - plane.d, db = plane.n.dot(B) - plane.d;
+    if (Math.abs(da) < 1e-6) add(A);
+    if (Math.abs(db) < 1e-6) add(B);
+    if (da * db < -1e-12 && Math.abs(da) > 1e-6 && Math.abs(db) > 1e-6) add(A.clone().add(B.clone().sub(A).multiplyScalar(da / (da - db))));
+  }
+  if (pts.length < 2) return null;
+  var best = null, bd = 0;
+  for (i = 0; i < pts.length; i++) for (j = i + 1; j < pts.length; j++) {
+    var d = pts[i].distanceTo(pts[j]);
+    if (d > bd) { bd = d; best = { a: pts[i], b: pts[j] }; }
+  }
+  return bd > 1e-5 ? best : null;
+}
+function edgeOfPoint(spec, p) {
+  for (var i = 0; i < spec.edges.length; i++) {
+    var A = spec.V[spec.edges[i].a], B = spec.V[spec.edges[i].b], ab = B.clone().sub(A);
+    var t = p.clone().sub(A).dot(ab) / ab.dot(ab);
+    if (t < -1e-6 || t > 1 + 1e-6) continue;
+    if (A.clone().add(ab.multiplyScalar(t)).distanceTo(p) < 1e-5) return i;
+  }
+  return -1;
+}
+function vertexOfPoint(spec, p) {
+  for (var i = 0; i < spec.V.length; i++) if (spec.V[i].distanceTo(p) < 1e-5) return i;
+  return -1;
+}
+var POLYNAME = { 3: 'үшбұрыш', 4: 'төртбұрыш', 5: 'бесбұрыш', 6: 'алтыбұрыш' };
+
+function makeEngine(spec, gp) {
+  var plane = planeOf(gp);
+  if (!plane) return { error: 'collinear' };
+  var poly = sectionPolygon(spec, gp);
+  if (!poly) return { error: 'none' };
+  var NF = spec.F.length, fp = [], fi;
+  for (fi = 0; fi < NF; fi++) fp.push(facePlane(spec, fi));
+  var sides = [], coplanarFace = -1;
+  for (fi = 0; fi < NF; fi++) {
+    var cop = spec.F[fi].every(function (v) { return Math.abs(plane.n.dot(spec.V[v]) - plane.d) < 1e-6; });
+    if (cop) coplanarFace = fi;
+    sides.push(cop ? null : faceSide(spec, plane, fi));
+  }
+  var known = [], done = [], steps = [], VL = ['P', 'Q', 'R', 'U', 'W', 'X'], vc = 0, tc = 0, finalDone = false;
+  ['M', 'N', 'K'].forEach(function (l, i) { known.push({ pos: gp[i].clone(), label: l, kind: 'given' }); });
+
+  function find(p) {
+    for (var i = 0; i < known.length; i++) if (known[i].pos.distanceTo(p) < 1e-5) return i;
+    return -1;
+  }
+  function addPoint(p, kind) {
+    if (find(p) >= 0) return null;
+    var vi = vertexOfPoint(spec, p), o;
+    if (vi >= 0) o = { pos: p.clone(), label: spec.names[vi], kind: 'vertex' };
+    else if (kind === 'trace') o = { pos: p.clone(), label: 'T' + SUB[++tc], kind: 'trace' };
+    else o = { pos: p.clone(), label: VL[vc++] || '?', kind: 'vert' };
+    known.push(o);
+    return o;
+  }
+  function inPlane(fi2, p) { return Math.abs(fp[fi2].n.dot(p) - fp[fi2].d) < 1e-5; }
+  function pointsIn(fi2) { return known.filter(function (k) { return inPlane(fi2, k.pos); }); }
+  function labelAt(p) { var i = find(p); return i >= 0 ? known[i].label : '?'; }
+  function sideLabel(fi2) { return labelAt(sides[fi2].a) + labelAt(sides[fi2].b); }
+  function sameSide(a, b) {
+    return (a.a.distanceTo(b.a) < 1e-5 && a.b.distanceTo(b.b) < 1e-5) || (a.a.distanceTo(b.b) < 1e-5 && a.b.distanceTo(b.a) < 1e-5);
+  }
+  function sideSegs(fi2) {
+    var s = sides[fi2], segs = [];
+    if (!s) return segs;
+    segs.push({ a: s.a, b: s.b, style: 'side' });
+    var ab = s.b.clone().sub(s.a);
+    known.forEach(function (kp) {
+      if (!inPlane(fi2, kp.pos)) return;
+      var t = kp.pos.clone().sub(s.a).dot(ab) / ab.dot(ab);
+      if (t >= -1e-6 && t <= 1 + 1e-6) return;
+      var off = s.a.clone().add(ab.clone().multiplyScalar(t)).distanceTo(kp.pos);
+      if (off > 1e-5) return;
+      segs.push({ a: t < 0 ? s.a : s.b, b: kp.pos, style: 'aux' });
+    });
+    return segs;
+  }
+  function foundText(step) {
+    return step.found.map(function (f) {
+      if (f.pt.kind === 'vertex') return 'Түзу ' + f.pt.label + ' төбесі арқылы өтеді.';
+      return 'Түзу ' + (f.ei >= 0 ? edgeName(spec, f.ei) + ' қырын ' : 'қырды ') + f.pt.label + ' нүктесінде қияды.';
+    }).join(' ');
+  }
+  function finishFace(fi2, step) {
+    done[fi2] = true;
+    var s = sides[fi2];
+    step.faces.push(fi2);
+    step.segs = step.segs.concat(sideSegs(fi2));
+    if (!s) return;
+    [s.a, s.b].forEach(function (p) {
+      var o = addPoint(p, 'vert');
+      if (o) { step.newPts.push(o); step.found.push({ pt: o, ei: edgeOfPoint(spec, p) }); }
+    });
+  }
+  function newStep(kind) { return { kind: kind, faces: [], newPts: [], found: [], segs: [], text: '' }; }
+
+  function markDuplicates() {
+    for (var a = 0; a < NF; a++) {
+      if (done[a] || !sides[a]) continue;
+      for (var b = 0; b < NF; b++) if (done[b] && sides[b] && sameSide(sides[a], sides[b])) { done[a] = true; break; }
+    }
+  }
+  function pairFor(fi2) {
+    var ps = pointsIn(fi2);
+    ps.sort(function (x, y) { return (inFace(spec, fi2, y.pos) ? 1 : 0) - (inFace(spec, fi2, x.pos) ? 1 : 0); });
+    return ps.length >= 2 ? [ps[0], ps[1]] : null;
+  }
+  function doJoin(fi2, pa, pb) {
+    var step = newStep('join');
+    var inside = inFace(spec, fi2, pa.pos) && inFace(spec, fi2, pb.pos), fname = faceName(spec, fi2);
+    finishFace(fi2, step);
+    step.text = (inside
+      ? pa.label + ' және ' + pb.label + ' нүктелері ' + fname + ' жағында жатыр. ' + pa.label + pb.label + ' түзуін жүргіземіз: ол қиманың осы жақтағы қабырғасын береді.'
+      : pa.label + ' және ' + pb.label + ' нүктелері ' + fname + ' жағының жазықтығында жатыр. ' + pa.label + pb.label + ' түзуі қима жазықтығының осы жазықтықпен қиылысу сызығы болады.') + ' ' + foundText(step);
+    step.text = step.text.trim();
+    steps.push(step);
+    return step;
+  }
+  function pickJoin() {
+    var best = -1, bs = -1;
+    for (var f2 = 0; f2 < NF; f2++) {
+      if (!sides[f2] || done[f2]) continue;
+      var ps = pointsIn(f2);
+      if (ps.length < 2) continue;
+      var inside = ps.filter(function (p) { return inFace(spec, f2, p.pos); }).length;
+      var sc = inside * 10 + ps.length;
+      if (sc > bs) { bs = sc; best = f2; }
+    }
+    return best;
+  }
+  function tryParallel() {
+    for (var f2 = 0; f2 < NF; f2++) {
+      if (!sides[f2] || done[f2]) continue;
+      var ps = pointsIn(f2);
+      if (!ps.length) continue;
+      for (var g = 0; g < NF; g++) {
+        if (g === f2 || !done[g] || !sides[g]) continue;
+        if (fp[f2].n.clone().cross(fp[g].n).length() > 1e-6) continue;
+        ps.sort(function (x, y) { return (inFace(spec, f2, y.pos) ? 1 : 0) - (inFace(spec, f2, x.pos) ? 1 : 0); });
+        var step = newStep('parallel');
+        var sl = sideLabel(g);
+        finishFace(f2, step);
+        step.faces.push(g);
+        step.text = (faceName(spec, f2) + ' және ' + faceName(spec, g) + ' жақтары параллель. Параллель жазықтықтарды үшінші жазықтық параллель түзулер бойымен қияды. Сондықтан ' + ps[0].label + ' нүктесі арқылы ' + sl + ' түзуіне параллель түзу жүргіземіз. ' + foundText(step)).trim();
+        steps.push(step);
+        return step;
+      }
+    }
+    return null;
+  }
+  function tryTrace() {
+    for (var f2 = 0; f2 < NF; f2++) {
+      if (!sides[f2] || done[f2]) continue;
+      var ps = pointsIn(f2);
+      if (!ps.length) continue;
+      var f = spec.F[f2];
+      for (var k = 0; k < f.length; k++) {
+        var ei = edgeIdx(spec, f[k], f[(k + 1) % f.length]);
+        var other = spec.edges[ei].faces.filter(function (x) { return x !== f2; })[0];
+        if (other === undefined || !done[other] || !sides[other]) continue;
+        var hit = edgeLineHit(spec, plane, ei);
+        if (!hit || hit.on || find(hit.pos) >= 0 || hit.pos.length() > 14) continue;
+        var o = addPoint(hit.pos, 'trace');
+        var step = newStep('trace');
+        var A = spec.V[spec.edges[ei].a], B = spec.V[spec.edges[ei].b];
+        var s = sides[other];
+        step.newPts.push(o);
+        step.faces.push(other);
+        step.segs.push({ a: hit.t < 0 ? A : B, b: hit.pos, style: 'ext' });
+        step.segs.push({ a: s.a.distanceTo(hit.pos) < s.b.distanceTo(hit.pos) ? s.a : s.b, b: hit.pos, style: 'aux' });
+        step.text = faceName(spec, other) + ' жағындағы ' + sideLabel(other) + ' түзуін ' + edgeName(spec, ei) + ' қырының түзуімен қиылыстырамыз (қырды созамыз): ' + o.label + ' нүктесі шығады. Ол ' + faceName(spec, f2) + ' жазықтығында да жатыр, өйткені ' + edgeName(spec, ei) + ' түзуі екі жаққа да ортақ.';
+        steps.push(step);
+        return step;
+      }
+    }
+    return null;
+  }
+  function hasWork() {
+    for (var f2 = 0; f2 < NF; f2++) if (sides[f2] && !done[f2]) return true;
+    for (var i = 0; i < poly.length; i++) if (find(poly[i]) < 0) return true;
+    return false;
+  }
+  function tryFallback() {
+    for (var i = 0; i < poly.length; i++) {
+      if (find(poly[i]) >= 0) continue;
+      var o = addPoint(poly[i], 'vert');
+      var ei = edgeOfPoint(spec, poly[i]);
+      var step = newStep('fallback');
+      step.newPts.push(o);
+      step.text = (ei >= 0 ? edgeName(spec, ei) + ' қыры' : 'Фигураның қыры') + ' қима жазықтығын ' + o.label + ' нүктесінде қияды.';
+      steps.push(step);
+      return step;
+    }
+    return null;
+  }
+  function finalStep() {
+    finalDone = true;
+    var step = newStep('final');
+    step.polygon = true;
+    var labs = poly.map(function (p) { return labelAt(p); }).join('');
+    step.text = 'Табылған ' + labs + ' нүктелерін ретімен қосамыз. Қима — ' + poly.length + '-бұрыш (' + POLYNAME[poly.length] + ').';
+    steps.push(step);
+    return step;
+  }
+  function step() {
+    if (finalDone) return null;
+    if (coplanarFace >= 0) {
+      if (!done[coplanarFace]) {
+        done[coplanarFace] = true;
+        var st = newStep('face');
+        st.faces.push(coplanarFace);
+        st.text = 'Үш нүкте де ' + faceName(spec, coplanarFace) + ' жағында жатыр. Үш нүкте арқылы өтетін жазықтық осы жақтың жазықтығымен беттеседі, сондықтан қима осы жақтың өзі болады.';
+        poly.forEach(function (p) { addPoint(p, 'vert'); });
+        steps.push(st);
+        return st;
+      }
+      return finalStep();
+    }
+    markDuplicates();
+    var fj = pickJoin();
+    if (fj >= 0) { var pr = pairFor(fj); return doJoin(fj, pr[0], pr[1]); }
+    var r = tryParallel();
+    if (r) return r;
+    r = tryTrace();
+    if (r) return r;
+    r = tryFallback();
+    if (r) return r;
+    if (hasWork()) { markDuplicates(); }
+    return finalStep();
+  }
+  function userJoin(i, j) {
+    if (i === j) return { ok: false, msg: 'Екі түрлі нүкте таңда.' };
+    var a = known[i], b = known[j], best = -1, bs = -1, already = false;
+    markDuplicates();
+    for (var f2 = 0; f2 < NF; f2++) {
+      if (!sides[f2]) continue;
+      if (!inPlane(f2, a.pos) || !inPlane(f2, b.pos)) continue;
+      if (done[f2]) { already = true; continue; }
+      var sc = (inFace(spec, f2, a.pos) ? 1 : 0) + (inFace(spec, f2, b.pos) ? 1 : 0);
+      if (sc > bs) { bs = sc; best = f2; }
+    }
+    if (best < 0) return { ok: false, msg: already ? 'Бұл түзу қазір жүргізілген.' : a.label + ' және ' + b.label + ' нүктелері бір жақта жатпайды. Бір жақта жатқан екі нүктені қос.' };
+    return { ok: true, step: doJoin(best, a, b) };
+  }
+  return {
+    plane: plane, poly: poly, sides: sides, known: known, steps: steps,
+    step: step, userJoin: userJoin,
+    canJoin: function () { markDuplicates(); return pickJoin() >= 0; },
+    hint: function () {
+      markDuplicates();
+      var fj = pickJoin();
+      if (fj < 0) return null;
+      var pr = pairFor(fj);
+      return { a: known.indexOf(pr[0]), b: known.indexOf(pr[1]), face: fj,
+        text: faceName(spec, fj) + ' жағында ' + pr[0].label + ' және ' + pr[1].label + ' нүктелері бар. Оларды қос.' };
+    },
+    progress: function () {
+      var t = 0, d = 0;
+      for (var q = 0; q < NF; q++) if (sides[q]) { t++; if (done[q]) d++; }
+      return { done: d, total: t };
+    },
+    runAll: function () { var g = 0; while (step() && g++ < 60); return steps; },
+    complete: function () { return finalDone || !hasWork(); },
+    isFinal: function () { return finalDone; },
+    finish: function () { if (!finalDone) { var g = 0; while (hasWork() && g++ < 60) step(); return finalStep(); } return null; }
+  };
+}
+/*ENGINE_END*/
+
+/*GEO_END*/
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var el = function (tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+  var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+  var shuffle = function (a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  };
+  var GL = typeof THREE !== 'undefined';
+
+  /* Telegram Mini App: if the page is opened inside Telegram, expand it. */
+  try {
+    var tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) { tg.ready(); tg.expand(); }
+  } catch (e) {}
+
+  /* ---------- progress storage ---------- */
+  var KEY = 'kenistik3d.v1', mem = null;
+  function load() {
+    if (mem) return mem;
+    var d = null;
+    try { d = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+    mem = Object.assign({ xp: 0, streak: 0, last: '', solved: 0, correct: 0, lessons: {}, ubt: {} }, d || {});
+    return mem;
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(mem)); } catch (e) {} }
+  function dayStr(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function yesterday() { var y = new Date(); y.setDate(y.getDate() - 1); return dayStr(y); }
+  function touchStreak() {
+    var s = load(), t = dayStr(new Date());
+    if (s.last === t) return;
+    s.streak = s.last === yesterday() ? s.streak + 1 : 1;
+    s.last = t;
+  }
+  function streakNow() {
+    var s = load();
+    return s.last && (s.last === dayStr(new Date()) || s.last === yesterday()) ? s.streak : 0;
+  }
+
+  /* ---------- 3D viewer ---------- */
+  function Viewer(canvas) {
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+    camera.position.set(0, 0, 9.5);
+    var root = new THREE.Group();
+    scene.add(root);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    var dl = new THREE.DirectionalLight(0xffffff, 0.55);
+    dl.position.set(3, 5, 6);
+    scene.add(dl);
+    var raycaster = new THREE.Raycaster();
+    var tapCb = null;
+    var initial = new THREE.Euler(0.5, -0.6, 0);
+    root.quaternion.setFromEuler(initial);
+
+    function resize() {
+      var w = canvas.clientWidth, h = canvas.clientHeight;
+      if (!w || !h) return;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
+    window.addEventListener('resize', resize);
+    resize();
+
+    var down = null;
+    canvas.addEventListener('pointerdown', function (e) {
+      down = { lx: e.clientX, ly: e.clientY, moved: 0 };
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      if (!down) return;
+      var dx = e.clientX - down.lx, dy = e.clientY - down.ly;
+      down.lx = e.clientX; down.ly = e.clientY;
+      down.moved += Math.abs(dx) + Math.abs(dy);
+      root.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), dx * 0.012);
+      root.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), dy * 0.012);
+    });
+    canvas.addEventListener('pointerup', function (e) {
+      if (!down) return;
+      var wasTap = down.moved < 8;
+      down = null;
+      if (wasTap && tapCb) {
+        var rect = canvas.getBoundingClientRect();
+        tapCb(e.clientX - rect.left, e.clientY - rect.top);
+      }
+    });
+    canvas.addEventListener('pointercancel', function () { down = null; });
+
+    (function loop() {
+      if (canvas.clientWidth > 0) renderer.render(scene, camera);
+      requestAnimationFrame(loop);
+    })();
+
+    function disposeTree(o) {
+      o.traverse(function (n) {
+        if (n.geometry) n.geometry.dispose();
+        if (n.material) {
+          var ms = Array.isArray(n.material) ? n.material : [n.material];
+          ms.forEach(function (m) { if (m.map) m.map.dispose(); m.dispose(); });
+        }
+      });
+    }
+    return {
+      root: root,
+      setTap: function (cb) { tapCb = cb; },
+      setInitial: function (x, y) { initial.set(x, y, 0); root.quaternion.setFromEuler(initial); },
+      reset: function () { root.quaternion.setFromEuler(initial); },
+      clear: function () { while (root.children.length) { var c = root.children[0]; root.remove(c); disposeTree(c); } },
+      project: function (vec) {
+        root.updateMatrixWorld(true);
+        var v = vec.clone().applyMatrix4(root.matrixWorld).project(camera);
+        return { x: (v.x * 0.5 + 0.5) * canvas.clientWidth, y: (-v.y * 0.5 + 0.5) * canvas.clientHeight };
+      },
+      rayFirst: function (px, py, meshes) {
+        root.updateMatrixWorld(true);
+        var ndc = new THREE.Vector2((px / canvas.clientWidth) * 2 - 1, -(py / canvas.clientHeight) * 2 + 1);
+        raycaster.setFromCamera(ndc, camera);
+        var hits = raycaster.intersectObjects(meshes, false);
+        return hits.length ? hits[0].object : null;
+      },
+      rayHit: function (px, py, meshes) {
+        root.updateMatrixWorld(true);
+        var ndc = new THREE.Vector2((px / canvas.clientWidth) * 2 - 1, -(py / canvas.clientHeight) * 2 + 1);
+        raycaster.setFromCamera(ndc, camera);
+        var hits = raycaster.intersectObjects(meshes, false);
+        return hits.length ? hits[0] : null;
+      },
+      dispose: disposeTree
+    };
+  }
+
+  /* ---------- figure building ---------- */
+  var COL = { edge: 0x3a557f, face: 0xb7ccf0, vert: 0x2c3f66, ok: 0x1f9d6b, bad: 0xd6455d, sel: 0x2f62d6, warm: 0xe0703a, grey: 0x7c8aa5, mid: 0x4fa3bd };
+  var NNAME = { 3: 'үшбұрышты', 4: 'төртбұрышты', 5: 'бесбұрышты', 6: 'алтыбұрышты' };
+  var POLY = { 3: 'үшбұрыш', 4: 'төртбұрыш', 5: 'бесбұрыш', 6: 'алтыбұрыш' };
+
+  function figName(kind, n) {
+    if (kind === 'prism' && n === 4) return 'Куб';
+    var s = NNAME[n] + ' ' + (kind === 'pyr' ? 'пирамида' : 'призма');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  function cylBetween(a, b, r, color) {
+    var len = a.distanceTo(b);
+    var m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), new THREE.MeshLambertMaterial({ color: color }));
+    m.position.copy(a).add(b).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    return m;
+  }
+  function labelSprite(text, color, scale) {
+    var c = document.createElement('canvas');
+    c.width = 96; c.height = 96;
+    var g = c.getContext('2d');
+    g.fillStyle = 'rgba(255,255,255,0.92)';
+    g.beginPath(); g.arc(48, 48, 36, 0, Math.PI * 2); g.fill();
+    g.lineWidth = 6; g.strokeStyle = color; g.stroke();
+    g.fillStyle = color;
+    g.font = '800 ' + (text.length > 1 ? 38 : 46) + 'px Nunito, Arial, sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, 48, 52);
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true }));
+    sp.scale.set(scale || 0.5, scale || 0.5, 1);
+    sp.renderOrder = 10;
+    return sp;
+  }
+  function hexCss(h) { return '#' + ('000000' + h.toString(16)).slice(-6); }
+
+  function buildFigure(viewer, spec, vertexR) {
+    var group = new THREE.Group();
+    var fig = { spec: spec, faceMeshes: [], edgeMeshes: [], vertMeshes: [], group: group };
+    spec.F.forEach(function (f, fi) {
+      var pos = [], idx = [];
+      f.forEach(function (vi) { pos.push(spec.V[vi].x, spec.V[vi].y, spec.V[vi].z); });
+      for (var k = 1; k < f.length - 1; k++) idx.push(0, k, k + 1);
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setIndex(idx);
+      g.computeVertexNormals();
+      var m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: COL.face, transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthWrite: false }));
+      m.userData.id = fi;
+      group.add(m);
+      fig.faceMeshes.push(m);
+    });
+    spec.edges.forEach(function (e) {
+      var m = cylBetween(spec.V[e.a], spec.V[e.b], 0.03, COL.edge);
+      group.add(m);
+      fig.edgeMeshes.push(m);
+    });
+    spec.V.forEach(function (v) {
+      var m = new THREE.Mesh(new THREE.SphereGeometry(vertexR || 0.065, 16, 12), new THREE.MeshLambertMaterial({ color: COL.vert }));
+      m.position.copy(v);
+      group.add(m);
+      fig.vertMeshes.push(m);
+    });
+    fig.setFace = function (i, color, op) { fig.faceMeshes[i].material.color.setHex(color); fig.faceMeshes[i].material.opacity = op; };
+    fig.setEdge = function (i, color, k) { fig.edgeMeshes[i].material.color.setHex(color); fig.edgeMeshes[i].scale.set(k, 1, k); };
+    fig.setVert = function (i, color, k) { fig.vertMeshes[i].material.color.setHex(color); fig.vertMeshes[i].scale.setScalar(k); };
+    fig.faceByAxis = function (axis, s) {
+      for (var i = 0; i < spec.F.length; i++) {
+        var ok = spec.F[i].every(function (vi) { return Math.abs(spec.V[vi].getComponent(axis) - s) < 1e-6; });
+        if (ok) return i;
+      }
+      return -1;
+    };
+    fig.seg = function (a, b, color, r) { var m = cylBetween(a, b, r || 0.05, color); group.add(m); return m; };
+    fig.vseg = function (i, j, color, r) { return fig.seg(spec.V[i], spec.V[j], color, r); };
+    fig.dot = function (v, color, r) {
+      var m = new THREE.Mesh(new THREE.SphereGeometry(r || 0.09, 16, 12), new THREE.MeshLambertMaterial({ color: color }));
+      m.position.copy(v); group.add(m); return m;
+    };
+    fig.label = function (text, pos, color, scale) { var s = labelSprite(text, color, scale); s.position.copy(pos); group.add(s); return s; };
+    fig.names = function () {
+      spec.V.forEach(function (v, i) {
+        var dir = i === spec.apex ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(v.x, v.y * 0.6, v.z).normalize();
+        fig.label(spec.names[i], v.clone().add(dir.multiplyScalar(0.33)), '#2c3f66', 0.4);
+      });
+    };
+    fig.poly = function (pts, color) {
+      var pos = [], idx = [];
+      pts.forEach(function (p) { pos.push(p.x, p.y, p.z); });
+      for (var k = 1; k < pts.length - 1; k++) idx.push(0, k, k + 1);
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setIndex(idx);
+      g.computeVertexNormals();
+      var m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: color, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false }));
+      group.add(m);
+      for (var i = 0; i < pts.length; i++) {
+        fig.seg(pts[i], pts[(i + 1) % pts.length], color, 0.04);
+        fig.dot(pts[i], color, 0.06);
+      }
+    };
+    viewer.root.add(group);
+    return fig;
+  }
+  function paint(fig, kind, i, color) {
+    if (kind === 'face') fig.setFace(i, color, 0.5);
+    if (kind === 'edge') fig.setEdge(i, color, 2.4);
+    if (kind === 'vertex') fig.setVert(i, color, 1.6);
+  }
+  function pickAt(viewer, fig, kind, x, y) {
+    var spec = fig.spec, best = null, bd = 1e9, i;
+    if (kind === 'vertex') {
+      for (i = 0; i < spec.V.length; i++) {
+        var p = viewer.project(spec.V[i]);
+        var d = Math.hypot(p.x - x, p.y - y);
+        if (d < bd) { bd = d; best = i; }
+      }
+      return bd < 36 ? best : null;
+    }
+    if (kind === 'edge') {
+      for (i = 0; i < spec.edges.length; i++) {
+        var a = viewer.project(spec.V[spec.edges[i].a]), b = viewer.project(spec.V[spec.edges[i].b]);
+        var vx = b.x - a.x, vy = b.y - a.y;
+        var t = ((x - a.x) * vx + (y - a.y) * vy) / (vx * vx + vy * vy || 1);
+        t = Math.max(0, Math.min(1, t));
+        var dd = Math.hypot(a.x + t * vx - x, a.y + t * vy - y);
+        if (dd < bd) { bd = dd; best = i; }
+      }
+      return bd < 26 ? best : null;
+    }
+    var hit = viewer.rayFirst(x, y, fig.faceMeshes);
+    return hit ? hit.userData.id : null;
+  }
+
+  /* ---------- step factories ---------- */
+  function infoStep(o) {
+    return { kind: 'info', chip: o.chip, title: o.title, body: o.body, build: o.build, cta: o.cta };
+  }
+  function tapStep(o) {
+    var step = {
+      kind: 'tap', chip: o.chip, title: o.prompt,
+      body: o.hint || 'Фигураға түртіп жауап бер. Алдымен айналдырып, әр жағын қарап шық.',
+      build: function (viewer) {
+        viewer.setInitial(0.5, o.yaw === undefined ? -0.55 : o.yaw);
+        var fig = buildFigure(viewer, o.spec, o.kind === 'vertex' ? 0.11 : 0.065);
+        if (o.names) fig.names();
+        if (o.pre) o.pre(fig);
+        var locked = false;
+        var count = o.kind === 'face' ? o.spec.F.length : o.kind === 'edge' ? o.spec.edges.length : o.spec.V.length;
+        viewer.setTap(function (x, y) {
+          if (locked) return;
+          var id = pickAt(viewer, fig, o.kind, x, y);
+          if (id === null) return;
+          locked = true;
+          var good = o.isOk(id);
+          for (var i = 0; i < count; i++) if (o.isOk(i)) paint(fig, o.kind, i, COL.ok);
+          if (!good) paint(fig, o.kind, id, COL.bad);
+          step.onTap(good, o.explain);
+        });
+      }
+    };
+    return step;
+  }
+  function mix(correct, wrongs) {
+    var seen = {}; seen[correct] = 1;
+    var w = [];
+    wrongs.forEach(function (x) { x = String(x); if (!seen[x]) { seen[x] = 1; w.push(x); } });
+    var all = shuffle([String(correct)].concat(w.slice(0, 3)));
+    return { answers: all, correct: all.indexOf(String(correct)) };
+  }
+  function choiceStep(o) {
+    var step = {
+      kind: 'choice', chip: o.chip, title: o.prompt, body: o.hint, answers: o.answers,
+      build: function (viewer) { step.fig = o.build(viewer); },
+      check: function (i) {
+        var ok = i === o.correct;
+        if (o.reveal && step.fig) o.reveal(step.fig, ok);
+        return { ok: ok, correctIndex: o.correct, text: o.solution };
+      }
+    };
+    return step;
+  }
+  function openFig(viewer, spec, vr, yaw, names) {
+    viewer.setInitial(0.5, yaw === undefined ? -0.55 : yaw);
+    viewer.setTap(null);
+    var fig = buildFigure(viewer, spec, vr || 0.05);
+    if (names !== false) fig.names();
+    return fig;
+  }
+
+  /* -- piece: tapping tasks on prisms/pyramids -- */
+  function fPick(k, nn, tk) {
+    return function () {
+      var kind = k || pick(['prism', 'pyr']);
+      var n = nn || (kind === 'prism' ? pick([3, 5, 6]) : pick([3, 4, 5]));
+      var spec = makeSpec(kind, n);
+      var tasks = ['base-face', 'lat-face', 'base-edge', 'lat-edge'];
+      if (kind === 'pyr') tasks.push('apex');
+      var task = tk || pick(tasks);
+      var T = {
+        'base-face': { t: 'face', prompt: 'Негізді таңда', def: kind === 'prism' ? 'Призманың екі негізі бар: олар тең және параллель көпбұрыштар. Кез келгені дұрыс.' : 'Пирамиданың негізі біреу: бүйір жақтар соған жабысып, төбеде түйіседі.', ok: function (id) { return spec.baseIds.indexOf(id) >= 0; } },
+        'lat-face': { t: 'face', prompt: 'Бір бүйір жақты таңда', def: 'Бүйір жақ дегеніміз негізге жатпайтын жақ.', ok: function (id) { return spec.baseIds.indexOf(id) < 0; } },
+        'base-edge': { t: 'edge', prompt: 'Негіздің бір қырын таңда', def: 'Негіздің қыры негіз көпбұрышының қабырғасы болады.', ok: function (id) { return spec.edges[id].base; } },
+        'lat-edge': { t: 'edge', prompt: 'Бір бүйір қырды таңда', def: kind === 'prism' ? 'Бүйір қыр екі негіздің сәйкес төбелерін қосады.' : 'Бүйір қыр негіздің төбесін пирамиданың төбесімен қосады.', ok: function (id) { return !spec.edges[id].base; } },
+        'apex': { t: 'vertex', prompt: 'Пирамиданың төбесін таңда', def: 'Пирамиданың төбесінде барлық бүйір қырлар түйіседі.', ok: function (id) { return id === spec.apex; } }
+      }[task];
+      return tapStep({ chip: figName(kind, n), prompt: T.prompt, spec: spec, kind: T.t, isOk: T.ok, explain: T.def });
+    };
+  }
+  function fCount(k, nn) {
+    return function () {
+      var kind = k || pick(['prism', 'pyr']);
+      var n = nn || pick([3, 4, 5, 6]);
+      var spec = makeSpec(kind, n);
+      var Vn = spec.V.length, En = spec.edges.length, Fn = spec.F.length;
+      var what = pick([['төбе', Vn], ['қыр', En], ['жақ', Fn]]);
+      var opts = [what[1]], cand = shuffle([-3, -2, -1, 1, 2, 3, 4]);
+      for (var i = 0; i < cand.length && opts.length < 4; i++) {
+        var v = what[1] + cand[i];
+        if (v > 2 && opts.indexOf(v) < 0) opts.push(v);
+      }
+      opts = shuffle(opts);
+      var correct = opts.indexOf(what[1]);
+      return choiceStep({
+        chip: figName(kind, n), prompt: 'Неше ' + what[0] + ' бар?', hint: 'Фигураны айналдырып, артқы жағындағы элементтерді де санап шық.',
+        answers: opts.map(String), correct: correct,
+        solution: figName(kind, n) + ': ' + Vn + ' төбе, ' + En + ' қыр, ' + Fn + ' жақ. Тексеру: ' + Vn + ' − ' + En + ' + ' + Fn + ' = ' + (Vn - En + Fn) + '.',
+        build: function (viewer) { return openFig(viewer, spec, 0.065, -0.55, false); }
+      });
+    };
+  }
+  /* -- piece: two points on a cube, same face? -- */
+  var AXN = [{ '1': 'оң', '-1': 'сол' }, { '1': 'жоғарғы', '-1': 'төменгі' }, { '1': 'алдыңғы', '-1': 'артқы' }];
+  function facesOf(p) { var f = []; for (var i = 0; i < 3; i++) if (Math.abs(p[i]) === 1) f.push({ i: i, s: p[i] }); return f; }
+  function faceWords(p) {
+    var n = facesOf(p).map(function (f) { return AXN[f.i][f.s]; });
+    return n.length === 1 ? n[0] + ' жақта' : n.slice(0, -1).join(', ') + ' және ' + n[n.length - 1] + ' жақтарда';
+  }
+  function rndPoint() {
+    var vals = [-1, -0.55, 0.55, 1];
+    var p = [0, 1, 2].map(function () { return pick(vals); });
+    if (!p.some(function (c) { return Math.abs(c) === 1; })) p[Math.floor(Math.random() * 3)] = Math.random() < 0.5 ? -1 : 1;
+    return p;
+  }
+  function fFace() {
+    var same = Math.random() < 0.5, p, q, common, tries = 0;
+    do {
+      p = rndPoint(); q = rndPoint();
+      var fp = facesOf(p), fq = facesOf(q);
+      common = fp.filter(function (a) { return fq.some(function (b) { return b.i === a.i && b.s === a.s; }); });
+      var dist = Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+      tries++;
+    } while (tries < 800 && ((common.length > 0) !== same || dist < 0.9));
+    var spec = makeSpec('prism', 4);
+    var yaw = (Math.random() < 0.5 ? -1 : 1) * (0.45 + Math.random() * 0.5);
+    return choiceStep({
+      chip: 'Куб · нүктелер мен жақтар', prompt: 'A және B нүктелері бір жақта жата ма?',
+      hint: 'Фигураны сүйреп айналдыр. Экранда жақын көрінгені кеңістікте жақын болмауы мүмкін.',
+      answers: ['Иә, бір жақта', 'Жоқ, әртүрлі жақтарда'], correct: same ? 0 : 1,
+      solution: 'A нүктесі ' + faceWords(p) + ' жатыр. B нүктесі ' + faceWords(q) + ' жатыр. ' + (same ? 'Ортақ жақ бар (жасыл), сондықтан екеуі бір жақта.' : 'Ортақ жақ жоқ, сондықтан бір жақта емес.'),
+      build: function (viewer) {
+        var fig = openFig(viewer, spec, 0.05, yaw, false);
+        [[p, 'A', '#2f62d6', COL.sel], [q, 'B', '#d9682b', COL.warm]].forEach(function (it) {
+          var pos = new THREE.Vector3(it[0][0], it[0][1], it[0][2]);
+          fig.dot(pos, it[3], 0.1);
+          var out = new THREE.Vector3();
+          facesOf(it[0]).forEach(function (f) { out.setComponent(f.i, f.s); });
+          out.normalize().multiplyScalar(0.36);
+          fig.label(it[1], pos.clone().add(out), it[2], 0.5);
+        });
+        return fig;
+      },
+      reveal: function (fig) {
+        if (same) common.forEach(function (f) { var id = fig.faceByAxis(f.i, f.s); if (id >= 0) fig.setFace(id, COL.ok, 0.5); });
+        else {
+          facesOf(p).forEach(function (f) { var id = fig.faceByAxis(f.i, f.s); if (id >= 0) fig.setFace(id, COL.sel, 0.45); });
+          facesOf(q).forEach(function (f) { var id = fig.faceByAxis(f.i, f.s); if (id >= 0) fig.setFace(id, COL.warm, 0.45); });
+        }
+      }
+    });
+  }
+  /* -- piece: edge relations on a cube -- */
+  var REL = {
+    par: { word: 'параллель', def: 'Параллель қырлар бір бағытта жатады және ешқашан қиылыспайды. Кубта әр қырға үш қыр параллель.' },
+    int: { word: 'қиылысатын', def: 'Қиылысатын қырлар ортақ төбеде түйіседі. Кубта әр қырға төрт қыр қиылысады: әр шетінде екі-екіден.' },
+    skew: { word: 'айқас', def: 'Айқас қырлар параллель де емес, қиылыспайды да: олар бір жазықтықта жатпайды. Кубта әр қырға төрт қыр айқас.' }
+  };
+  function fRel(type) {
+    return function () {
+      var spec = makeSpec('prism', 4);
+      var e0 = Math.floor(Math.random() * spec.edges.length);
+      var nm = edgeName(spec, e0);
+      return tapStep({
+        chip: 'Куб · қырлардың өзара орналасуы', prompt: nm + ' қырына ' + REL[type].word + ' қырды таңда', spec: spec, kind: 'edge', names: true,
+        isOk: function (id) { return id !== e0 && edgeRel(spec, e0, id) === type; },
+        explain: REL[type].def,
+        pre: function (fig) { fig.setEdge(e0, COL.sel, 2.6); }
+      });
+    };
+  }
+  function fPerp() {
+    return function () {
+      var spec = makeSpec('prism', 4);
+      var fi = Math.floor(Math.random() * 6);
+      var nm = faceName(spec, fi);
+      return tapStep({
+        chip: 'Куб · перпендикуляр', prompt: nm + ' жазықтығына перпендикуляр қырды таңда', spec: spec, kind: 'edge', names: true,
+        isOk: function (id) { return edgePerpToFace(spec, id, fi); },
+        explain: 'Жазықтыққа перпендикуляр қыр сол жазықтыққа тимейтін төртеуінің бірі: ол жақтың екі қабырғасына да тік бұрышпен түседі.',
+        pre: function (fig) { fig.setFace(fi, COL.sel, 0.4); }
+      });
+    };
+  }
+  /* -- piece: sections -- */
+  function secPick(spec, target) {
+    var c = candidates(spec), best = null;
+    for (var t = 0; t < 700; t++) {
+      var idx = shuffle(c.map(function (_, i) { return i; })).slice(0, 3);
+      var poly = sectionPolygon(spec, idx.map(function (i) { return c[i].pos; }));
+      if (!poly) continue;
+      if (!best) best = { idx: idx, poly: poly };
+      if (poly.length === target) { best = { idx: idx, poly: poly }; break; }
+    }
+    best.c = c;
+    return best;
+  }
+  var PNAMES = ['M', 'N', 'K'], PCOL = ['#2f62d6', '#d9682b', '#1f9d6b'], PHEX = [COL.sel, COL.warm, COL.ok];
+  function showPoints(fig, sec) {
+    sec.idx.forEach(function (ci, k) {
+      var pos = sec.c[ci].pos;
+      fig.dot(pos, PHEX[k], 0.1);
+      var out = pos.clone().normalize().multiplyScalar(0.38);
+      if (pos.length() < 0.01) out.set(0, 0.38, 0);
+      fig.label(PNAMES[k], pos.clone().add(out), PCOL[k], 0.46);
+    });
+  }
+  function fSec(kind, n, target) {
+    return function () {
+      var kk = kind || 'prism', nn = n || 4;
+      var spec = makeSpec(kk, nn);
+      var tg = target || pick([3, 4, 5, 6]);
+      var sec = secPick(spec, tg);
+      var answers = ['үшбұрыш', 'төртбұрыш', 'бесбұрыш', 'алтыбұрыш'];
+      var correct = sec.poly.length - 3;
+      return choiceStep({
+        chip: figName(kk, nn) + ' · қима', prompt: 'M, N, K нүктелері арқылы өтетін қима қандай көпбұрыш?',
+        hint: 'Үш нүкте жазықтықты анықтайды. Жазықтық қай жақтарды қиып өтетінін ойла.',
+        answers: answers, correct: correct,
+        solution: 'Қима — ' + POLY[sec.poly.length] + ' (' + sec.poly.length + ' төбе). Қиманың әр қабырғасы фигураның бір жағында жатады, сондықтан қабырға саны қиылған жақтар санына тең.',
+        build: function (viewer) { var fig = openFig(viewer, spec, 0.05, (Math.random() < 0.5 ? -1 : 1) * (0.45 + Math.random() * 0.4), true); showPoints(fig, sec); return fig; },
+        reveal: function (fig) { fig.poly(sec.poly, COL.warm); }
+      });
+    };
+  }
+  /* -- info steps -- */
+  var iFEV = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Жақ, қыр, төбе',
+      body: 'Көк түспен боялғаны жақ: фигураның жазық беті. Жуан сызық қыр: екі жақтың қиылысу сызығы. Үлкен шар төбе: қырлар түйісетін нүкте. Фигураны сүйреп айналдырып көр.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 3);
+        var fig = openFig(viewer, spec, 0.06, -0.55, false);
+        fig.setFace(2, COL.sel, 0.5);
+        var ei = -1;
+        spec.edges.forEach(function (e, i) { if (e.faces.indexOf(3) >= 0 && e.faces.indexOf(4) >= 0) ei = i; });
+        if (ei >= 0) { fig.setEdge(ei, COL.warm, 2.6); fig.setVert(spec.edges[ei].b, COL.ok, 2); }
+      }
+    });
+  };
+  var iPrism = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Призма',
+      body: 'Призманың екі негізі бар: олар тең және параллель көпбұрыштар (көк). Қалған жақтары бүйір жақтары, олар параллелограмм. Негіздегі қабырға санына қарай призма үшбұрышты, төртбұрышты, бесбұрышты болып аталады.',
+      build: function (viewer) { var fig = openFig(viewer, makeSpec('prism', 5), 0.05, -0.55, false); fig.setFace(0, COL.sel, 0.5); fig.setFace(1, COL.sel, 0.5); }
+    });
+  };
+  var iPyr = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Пирамида',
+      body: 'Пирамиданың негізі біреу (көк). Бүйір жақтары үшбұрыштар, олар бір төбеде түйіседі. Бұл төбе пирамиданың төбесі деп аталады (үлкен шар).',
+      build: function (viewer) { var spec = makeSpec('pyr', 4); var fig = openFig(viewer, spec, 0.05, -0.55, false); fig.setFace(0, COL.sel, 0.5); fig.setVert(spec.apex, COL.warm, 2.2); }
+    });
+  };
+  var iEuler = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Эйлер формуласы',
+      body: 'Дөңес көпжақтың төбе саны (Т), қыр саны (Қ) және жақ саны (Ж) үшін Т − Қ + Ж = 2. Мысалы, кубта 8 − 12 + 6 = 2. Санағанда артқы жақтағы элементтерді де ұмытпа.',
+      build: function (viewer) { openFig(viewer, makeSpec('prism', 4), 0.065, -0.55, false); }
+    });
+  };
+  var iScreen = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Экранда жақын кеңістікте жақын емес',
+      body: 'Екі нүкте экранда жақын көрінуі мүмкін, бірақ кеңістікте әртүрлі жақтарда жатады. Сондықтан фигураны айналдырып, нүкте қай жақтарға тиісті екенін тексер.',
+      build: function (viewer) {
+        var fig = openFig(viewer, makeSpec('prism', 4), 0.05, 0.7, false);
+        fig.dot(new THREE.Vector3(1, 0.5, 1), COL.sel, 0.1);
+        fig.dot(new THREE.Vector3(-1, 0.5, -1), COL.warm, 0.1);
+      }
+    });
+  };
+  var iPar = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Параллель қырлар',
+      body: 'Параллель түзулер бір жазықтықта жатады және қиылыспайды. Кубта әр қырға үш қыр параллель. Көк қырға параллель қырлар жасыл түспен көрсетілген.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        var e0 = edgeIdx(spec, 0, 1);
+        fig.setEdge(e0, COL.sel, 2.8);
+        spec.edges.forEach(function (e, i) { if (i !== e0 && edgeRel(spec, e0, i) === 'par') fig.setEdge(i, COL.ok, 2.4); });
+      }
+    });
+  };
+  var iSkew = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Қиылысатын және айқас қырлар',
+      body: 'Қиылысатын қырлар ортақ төбеде түйіседі. Айқас қырлар параллель де емес, қиылыспайды да: олар бір жазықтықта жатпайды. Көк қырға айқас қырлар қызыл түспен көрсетілген.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        var e0 = edgeIdx(spec, 0, 1);
+        fig.setEdge(e0, COL.sel, 2.8);
+        spec.edges.forEach(function (e, i) { if (i !== e0 && edgeRel(spec, e0, i) === 'skew') fig.setEdge(i, COL.bad, 2.4); });
+      }
+    });
+  };
+  var iPerp = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Жазықтыққа перпендикуляр түзу',
+      body: 'Түзу жазықтықтағы кез келген түзуге перпендикуляр болса, ол жазықтыққа перпендикуляр. Кубта AA₁, BB₁, CC₁, DD₁ қырлары ABCD жазықтығына перпендикуляр (жасыл).',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        fig.setFace(0, COL.sel, 0.4);
+        spec.edges.forEach(function (e, i) { if (edgePerpToFace(spec, i, 0)) fig.setEdge(i, COL.ok, 2.4); });
+      }
+    });
+  };
+  function angleDraw1(fig) {
+    fig.vseg(0, 6, COL.warm, 0.05); fig.vseg(0, 2, COL.sel, 0.05); fig.vseg(2, 6, COL.grey, 0.035);
+  }
+  var iAngle = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Түзу мен жазықтық арасындағы бұрыш',
+      body: 'Бұл түзу мен оның жазықтыққа проекциясы арасындағы бұрыш. AC₁ диагоналінің ABCD жазықтығындағы проекциясы AC. Сондықтан бұрыш ∠C₁AC. Оны CC₁C тік үшбұрышынан табамыз.',
+      build: function (viewer) { var fig = openFig(viewer, makeSpec('prism', 4), 0.05, -0.55, true); angleDraw1(fig); }
+    });
+  };
+  var iSec1 = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Қима дегеніміз не',
+      body: 'Қима дегеніміз кесетін жазықтық пен фигураның ортақ бөлігі, ол көпбұрыш. Мұнда AD, C₁D₁ және BB₁ қырларының ортасы арқылы өтетін жазықтық алтыбұрыш береді. Қиманың төбелері жазықтықтың қырларды қиятын нүктелері.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        var c = candidates(spec), V = spec.V.length;
+        var idx = [V + edgeIdx(spec, 0, 3), V + edgeIdx(spec, 6, 7), V + edgeIdx(spec, 1, 5)];
+        var poly = sectionPolygon(spec, idx.map(function (i) { return c[i].pos; }));
+        showPoints(fig, { idx: idx, c: c });
+        if (poly) fig.poly(poly, COL.warm);
+      }
+    });
+  };
+  var iSec2 = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Үш нүкте арқылы өтетін қима',
+      body: 'Бір түзуде жатпайтын үш нүкте бір ғана жазықтықты анықтайды. Қима жасау үшін жазықтықтың әр қырмен қиылысу нүктесін тауып, оларды ретімен қосамыз.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        var sec = secPick(spec, 5);
+        showPoints(fig, sec);
+        fig.poly(sec.poly, COL.warm);
+      }
+    });
+  };
+  var iSec3 = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Пирамида қималары',
+      body: 'Төртбұрышты пирамиданың қимасы үшбұрыш, төртбұрыш немесе бесбұрыш болады. Қима қабырғаларының саны қиылған жақтар санына тең.',
+      build: function (viewer) {
+        var spec = makeSpec('pyr', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        var sec = secPick(spec, 4);
+        showPoints(fig, sec);
+        fig.poly(sec.poly, COL.warm);
+      }
+    });
+  };
+
+  /* ---------- ҰБТ tasks ---------- */
+  var CUBE_NOTE = 'Сызба масштабсыз.';
+  function cubeBuild(draw, yaw) {
+    return function (viewer) {
+      var spec = makeSpec('prism', 4);
+      var fig = openFig(viewer, spec, 0.05, yaw, true);
+      draw(fig, spec);
+      return fig;
+    };
+  }
+  function pyrBuild(draw) {
+    return function (viewer) {
+      var spec = makeSpec('pyr', 4);
+      var fig = openFig(viewer, spec, 0.05, -0.55, true);
+      var O = new THREE.Vector3(0, -1, 0);
+      var M = spec.V[0].clone().add(spec.V[1]).multiplyScalar(0.5);
+      draw(fig, spec, O, M);
+      return fig;
+    };
+  }
+  var DEG = ['30°', '45°', '60°', '90°'];
+
+  var gAngle1 = function () {
+    var m = mix('arctg(√2/2)', ['45°', 'arctg √2', '60°']);
+    return choiceStep({
+      chip: 'ҰБТ · түзу мен жазықтық бұрышы', prompt: 'ABCDA₁B₁C₁D₁ — куб. AC₁ диагоналі мен ABCD жазықтығы арасындағы бұрышты тап.',
+      hint: 'Алдымен AC₁ түзуінің ABCD жазықтығындағы проекциясын тап. ' + CUBE_NOTE,
+      answers: m.answers, correct: m.correct,
+      solution: 'AC — AC₁ түзуінің ABCD жазықтығындағы проекциясы, сондықтан φ = ∠C₁AC. Тік үшбұрыштан tg φ = CC₁ / AC = a / (a√2) = √2/2. Демек φ = arctg(√2/2) ≈ 35°.',
+      build: cubeBuild(angleDraw1, -0.55)
+    });
+  };
+  var gAngle2 = function () {
+    var m = mix('45°', ['30°', '60°', '90°']);
+    return choiceStep({
+      chip: 'ҰБТ · түзу мен жазықтық бұрышы', prompt: 'Кубтың AB₁ диагоналі мен ABCD жазықтығы арасындағы бұрышты тап.',
+      hint: 'AB₁ диагоналі ABB₁A₁ жағында жатыр. Оның проекциясын тап.',
+      answers: m.answers, correct: m.correct,
+      solution: 'B₁B ⟂ ABCD, сондықтан AB₁ түзуінің проекциясы AB. φ = ∠B₁AB. BB₁ = AB, үшбұрыш тікбұрышты теңбүйірлі, сондықтан φ = 45°.',
+      build: cubeBuild(function (fig) { fig.vseg(0, 5, COL.warm, 0.05); fig.vseg(0, 1, COL.sel, 0.05); fig.vseg(1, 5, COL.grey, 0.035); }, -0.55)
+    });
+  };
+  var gAngle3 = function () {
+    var c = pick([{ h: '√6', ans: '30°', tg: '√6 / (3√2) = √3/3' }, { h: '3√2', ans: '45°', tg: '3√2 / (3√2) = 1' }, { h: '3√6', ans: '60°', tg: '3√6 / (3√2) = √3' }]);
+    var m = mix(c.ans, ['30°', '45°', '60°', 'arctg 2']);
+    return choiceStep({
+      chip: 'ҰБТ · түзу мен жазықтық бұрышы', prompt: 'SABCD — дұрыс төртбұрышты пирамида. Негізінің қабырғасы 6, биіктігі ' + c.h + '. SA бүйір қыры мен негіз жазықтығы арасындағы бұрышты тап.',
+      hint: 'Биіктік SO негіз центрінен өтеді. SA қырының негіздегі проекциясы AO. ' + CUBE_NOTE,
+      answers: m.answers, correct: m.correct,
+      solution: 'AC = 6√2, AO = AC/2 = 3√2. φ = ∠SAO. tg φ = SO / AO = ' + c.tg + '. Демек φ = ' + c.ans + '.',
+      build: pyrBuild(function (fig, spec, O) { fig.seg(spec.V[4], spec.V[0], COL.warm, 0.05); fig.seg(spec.V[0], O, COL.sel, 0.05); fig.seg(spec.V[4], O, COL.grey, 0.035); })
+    });
+  };
+  var gDih1 = function () {
+    var c = pick([{ h: '√3', ans: '30°', tg: '√3 / 3' }, { h: '3', ans: '45°', tg: '3 / 3 = 1' }, { h: '3√3', ans: '60°', tg: '3√3 / 3 = √3' }]);
+    var m = mix(c.ans, ['30°', '45°', '60°', 'arctg 2']);
+    return choiceStep({
+      chip: 'ҰБТ · екіжақты бұрыш', prompt: 'SABCD — дұрыс төртбұрышты пирамида. Негізінің қабырғасы 6, биіктігі ' + c.h + '. Бүйір жақ пен негіз жазықтығы арасындағы бұрышты тап.',
+      hint: 'M — AB қабырғасының ортасы. SM мен OM екеуі де AB-ға перпендикуляр. ' + CUBE_NOTE,
+      answers: m.answers, correct: m.correct,
+      solution: 'SM ⟂ AB және OM ⟂ AB, сондықтан ∠SMO — сызықтық бұрыш. OM = 6/2 = 3. tg φ = SO / OM = ' + c.tg + '. Демек φ = ' + c.ans + '.',
+      build: pyrBuild(function (fig, spec, O, M) { fig.seg(spec.V[4], M, COL.warm, 0.05); fig.seg(O, M, COL.sel, 0.05); fig.seg(spec.V[4], O, COL.grey, 0.035); fig.dot(M, COL.ok, 0.08); fig.label('M', M.clone().add(new THREE.Vector3(0, -0.3, 0.2)), '#1f9d6b', 0.4); })
+    });
+  };
+  var gDih2 = function () {
+    var m = mix('45°', ['30°', '60°', '90°']);
+    return choiceStep({
+      chip: 'ҰБТ · екіжақты бұрыш', prompt: 'ABCDA₁B₁C₁D₁ — куб. ABCD және ABC₁D₁ жазықтықтары арасындағы бұрышты тап.',
+      hint: 'Жазықтықтардың қиылысу сызығы AB. Оған перпендикуляр түзулерді тап.',
+      answers: m.answers, correct: m.correct,
+      solution: 'Қиылысу сызығы — AB. BC ⟂ AB және BC₁ ⟂ AB, сондықтан ∠CBC₁ — сызықтық бұрыш. CC₁ = BC, үшбұрыш тікбұрышты теңбүйірлі, бұрыш 45°.',
+      build: cubeBuild(function (fig) { fig.vseg(0, 1, COL.ok, 0.045); fig.vseg(1, 2, COL.sel, 0.05); fig.vseg(1, 6, COL.warm, 0.05); fig.vseg(2, 6, COL.grey, 0.035); }, -0.55)
+    });
+  };
+  var gDih3 = function () {
+    var m = mix('arctg √2', ['45°', '60°', 'arctg(√2/2)']);
+    return choiceStep({
+      chip: 'ҰБТ · екіжақты бұрыш', prompt: 'ABCDA₁B₁C₁D₁ — куб. ABCD және A₁BD жазықтықтары арасындағы бұрышты тап.',
+      hint: 'O — BD-ның ортасы. AO және A₁O түзулері BD-ға қалай орналасқанын ойла.',
+      answers: m.answers, correct: m.correct,
+      solution: 'AO ⟂ BD және A₁O ⟂ BD (теңбүйірлі үшбұрыштың медианасы), сондықтан ∠A₁OA — сызықтық бұрыш. AO = a√2/2, AA₁ = a. tg φ = a / (a√2/2) = √2.',
+      build: cubeBuild(function (fig, spec) {
+        var O = spec.V[1].clone().add(spec.V[3]).multiplyScalar(0.5);
+        fig.vseg(1, 3, COL.ok, 0.045); fig.seg(spec.V[0], O, COL.sel, 0.05); fig.seg(spec.V[4], O, COL.warm, 0.05); fig.vseg(0, 4, COL.grey, 0.035);
+        fig.vseg(4, 1, COL.grey, 0.03); fig.vseg(4, 3, COL.grey, 0.03);
+      }, -0.55)
+    });
+  };
+  var gDist1 = function () {
+    var a = pick([2, 3, 5, 7]);
+    var m = mix(a + '√3', [a + '√2', String(2 * a), String(3 * a), a + '√6']);
+    return choiceStep({
+      chip: 'ҰБТ · қашықтық', prompt: 'Кубтың қыры ' + a + '. A және C₁ нүктелері арасындағы қашықтықты тап.',
+      hint: 'Кубтың кеңістік диагоналі. Пифагор теоремасын екі рет қолдан.',
+      answers: m.answers, correct: m.correct,
+      solution: 'AC² = a² + a² = 2a². AC₁² = AC² + CC₁² = 2a² + a² = 3a². Демек AC₁ = a√3 = ' + a + '√3.',
+      build: cubeBuild(function (fig) { fig.vseg(0, 6, COL.warm, 0.05); fig.vseg(0, 2, COL.grey, 0.035); fig.vseg(2, 6, COL.grey, 0.035); }, -0.55)
+    });
+  };
+  var gDist2 = function () {
+    var c = pick([{ a: 6, ans: '2√6', w: ['3√3', '3√2', '2√3'] }, { a: 3, ans: '√6', w: ['3√3/2', '3√2/2', '√3'] }]);
+    var m = mix(c.ans, c.w);
+    return choiceStep({
+      chip: 'ҰБТ · қашықтық', prompt: 'Кубтың қыры ' + c.a + '. A нүктесінен BD₁ диагоналіне дейінгі қашықтықты тап.',
+      hint: 'ABD₁ үшбұрышын қарастыр: AB мен AD₁ арасындағы бұрыш қандай?',
+      answers: m.answers, correct: m.correct,
+      solution: 'AB ⟂ жақ ADD₁A₁, сондықтан AB ⟂ AD₁: ABD₁ — тікбұрышты үшбұрыш. AB = a, AD₁ = a√2, BD₁ = a√3. Гипотенузаға түсірілген биіктік h = AB·AD₁ / BD₁ = a√6/3 = ' + c.ans + '.',
+      build: cubeBuild(function (fig) { fig.vseg(1, 7, COL.warm, 0.05); fig.vseg(0, 1, COL.grey, 0.035); fig.vseg(0, 7, COL.grey, 0.035); }, -0.55)
+    });
+  };
+  var gDist3 = function () {
+    var a = pick([4, 5, 6, 8]);
+    var m = mix(String(a), [a + '√2', String(2 * a), a + '√3']);
+    return choiceStep({
+      chip: 'ҰБТ · қашықтық', prompt: 'Кубтың қыры ' + a + '. AB және CC₁ айқас түзулері арасындағы қашықтықты тап.',
+      hint: 'Айқас түзулер арасындағы қашықтық олардың ортақ перпендикулярының ұзындығына тең.',
+      answers: m.answers, correct: m.correct,
+      solution: 'BC ⟂ AB және BC ⟂ CC₁, сондықтан BC — ортақ перпендикуляр. Қашықтық BC = a = ' + a + '.',
+      build: cubeBuild(function (fig) { fig.vseg(0, 1, COL.warm, 0.05); fig.vseg(2, 6, COL.sel, 0.05); fig.vseg(1, 2, COL.ok, 0.045); }, -0.55)
+    });
+  };
+  var TRI = [[3, 4, 5], [5, 12, 13], [4, 3, 5], [6, 8, 10]];
+  function pyrDraw(fig, spec, O, M) { fig.seg(spec.V[4], M, COL.warm, 0.05); fig.seg(O, M, COL.sel, 0.045); fig.seg(spec.V[4], O, COL.grey, 0.035); }
+  var gDist4 = function () {
+    var t = pick(TRI), k = t[0], h = t[1], apo = t[2];
+    var m = mix(String(apo), [apo + 1, apo - 1, apo + 2, k + h].filter(function (x) { return x > 0; }));
+    return choiceStep({
+      chip: 'ҰБТ · қашықтық', prompt: 'SABCD — дұрыс төртбұрышты пирамида. Негізінің қабырғасы ' + (2 * k) + ', биіктігі ' + h + '. Төбесінен негіздің қабырғасына дейінгі қашықтықты (апофеманы SM) тап.',
+      hint: 'M — негіз қабырғасының ортасы, O — негіз центрі. SOM — тік үшбұрыш. ' + CUBE_NOTE,
+      answers: m.answers, correct: m.correct,
+      solution: 'OM = ' + (2 * k) + '/2 = ' + k + ', SO = ' + h + '. SM² = SO² + OM² = ' + h + '² + ' + k + '² = ' + (h * h + k * k) + ', SM = ' + apo + '.',
+      build: pyrBuild(pyrDraw)
+    });
+  };
+  var gVol1 = function () {
+    var t = pick(TRI), k = t[0], h = t[1];
+    var V = (4 * k * k * h) / 3;
+    var m = mix(String(V), [3 * V, 2 * V, V / 2]);
+    return choiceStep({
+      chip: 'ҰБТ · көлем', prompt: 'SABCD — дұрыс төртбұрышты пирамида. Негізінің қабырғасы ' + (2 * k) + ', биіктігі ' + h + '. Пирамиданың көлемін тап.',
+      hint: 'V = (1/3) · S негіз · h. Негіз — шаршы.',
+      answers: m.answers, correct: m.correct,
+      solution: 'S негіз = ' + (2 * k) + '² = ' + (4 * k * k) + '. V = (1/3) · ' + (4 * k * k) + ' · ' + h + ' = ' + V + '.',
+      build: pyrBuild(function (fig, spec, O) { fig.seg(spec.V[4], O, COL.warm, 0.05); fig.dot(O, COL.sel, 0.07); })
+    });
+  };
+  var gVol2 = function () {
+    var t = pick(TRI), k = t[0], apo = t[2];
+    var S = 4 * k * apo;
+    var m = mix(String(S), [2 * k * apo, 8 * k * apo, S + 4 * k * k]);
+    return choiceStep({
+      chip: 'ҰБТ · бет ауданы', prompt: 'SABCD — дұрыс төртбұрышты пирамида. Негізінің қабырғасы ' + (2 * k) + ', апофемасы ' + apo + '. Бүйір бетінің ауданын тап.',
+      hint: 'Бүйір бет төрт тең үшбұрыштан тұрады. Үшбұрыштың ауданы: (1/2) · негізі · биіктігі.',
+      answers: m.answers, correct: m.correct,
+      solution: 'Бір бүйір жақтың ауданы (1/2) · ' + (2 * k) + ' · ' + apo + ' = ' + (k * apo) + '. Төрт жақ: 4 · ' + (k * apo) + ' = ' + S + '.',
+      build: pyrBuild(pyrDraw)
+    });
+  };
+  var gVol3 = function () {
+    var m = mix('36', ['72', '54', '108']);
+    return choiceStep({
+      chip: 'ҰБТ · көлем', prompt: 'Кубтың қыры 6. A₁ABD пирамидасының көлемін тап.',
+      hint: 'Негіз ретінде ABD үшбұрышын ал. Пирамиданың биіктігі қайсы қыр?',
+      answers: m.answers, correct: m.correct,
+      solution: 'S(ABD) = (1/2) · 6 · 6 = 18. AA₁ ⟂ ABD, биіктік h = 6. V = (1/3) · 18 · 6 = 36.',
+      build: cubeBuild(function (fig) {
+        fig.vseg(0, 4, COL.warm, 0.05); fig.vseg(0, 1, COL.sel, 0.045); fig.vseg(0, 3, COL.sel, 0.045); fig.vseg(1, 3, COL.sel, 0.045);
+        fig.vseg(4, 1, COL.grey, 0.03); fig.vseg(4, 3, COL.grey, 0.03);
+      }, -0.55)
+    });
+  };
+
+  var UBT = [
+    { id: 'angle', title: 'Түзу мен жазықтық арасындағы бұрыш', gens: [gAngle1, gAngle2, gAngle3] },
+    { id: 'dihedral', title: 'Екіжақты бұрыш', gens: [gDih1, gDih2, gDih3] },
+    { id: 'dist', title: 'Қашықтық', gens: [gDist1, gDist2, gDist3, gDist4] },
+    { id: 'vol', title: 'Көлем және бет ауданы', gens: [gVol1, gVol2, gVol3] }
+  ];
+
+  /* ---------- extra lessons: parallelism, perpendicularity, projections, angles, distances, volumes ---------- */
+  function edgeParToFace(spec, ei, fi) {
+    var pl = facePlane(spec, fi), e = spec.edges[ei];
+    var u = spec.V[e.b].clone().sub(spec.V[e.a]).normalize();
+    if (Math.abs(u.dot(pl.n)) > 1e-6) return false;
+    return Math.abs(pl.n.dot(spec.V[e.a]) - pl.d) > 1e-6;
+  }
+  function facesParallel(spec, f1, f2) {
+    return f1 !== f2 && facePlane(spec, f1).n.clone().cross(facePlane(spec, f2).n).length() < 1e-6;
+  }
+  function facesPerp(spec, f1, f2) {
+    return Math.abs(facePlane(spec, f1).n.dot(facePlane(spec, f2).n)) < 1e-6;
+  }
+  function fParFace() {
+    return function () {
+      var spec = makeSpec('prism', 4), fi = Math.floor(Math.random() * 6);
+      return tapStep({
+        chip: 'Куб · параллельдік', prompt: faceName(spec, fi) + ' жазықтығына параллель қырды таңда', spec: spec, kind: 'edge', names: true,
+        isOk: function (id) { return edgeParToFace(spec, id, fi); },
+        explain: 'Жазықтыққа параллель қыр сол жазықтықта жатпайды және онымен ортақ нүктесі жоқ: бұл қарсы жақтың төрт қыры. Қалған қырлар не жазықтықта жатыр, не оны қиып өтеді.',
+        pre: function (fig) { fig.setFace(fi, COL.sel, 0.4); }
+      });
+    };
+  }
+  function fParPlane() {
+    return function () {
+      var spec = makeSpec('prism', pick([4, 6])), fi = Math.floor(Math.random() * spec.F.length);
+      return tapStep({
+        chip: figName('prism', spec.n) + ' · параллель жазықтықтар', prompt: faceName(spec, fi) + ' жазықтығына параллель жақты таңда', spec: spec, kind: 'face', names: true,
+        isOk: function (id) { return facesParallel(spec, fi, id); },
+        explain: 'Параллель жақтар қарама-қарсы жатады және бір-бірімен қиылыспайды. Мұндай жұптың қырлары да бір-біріне параллель.',
+        pre: function (fig) { fig.setFace(fi, COL.sel, 0.45); }
+      });
+    };
+  }
+  function fPerpPlane() {
+    return function () {
+      var spec = makeSpec('prism', 4), fi = Math.floor(Math.random() * 6);
+      return tapStep({
+        chip: 'Куб · перпендикуляр жазықтықтар', prompt: faceName(spec, fi) + ' жазықтығына перпендикуляр жақты таңда', spec: spec, kind: 'face', names: true,
+        isOk: function (id) { return facesPerp(spec, fi, id); },
+        explain: 'Көршілес жақтар перпендикуляр: біреуі екіншісіне перпендикуляр қыр арқылы өтеді. Қарсы жақ параллель, сондықтан таңдалмайды.',
+        pre: function (fig) { fig.setFace(fi, COL.sel, 0.45); }
+      });
+    };
+  }
+  function fProj() {
+    return function () {
+      var spec = makeSpec('prism', 4), vi, fi, foot, pl, tries = 0;
+      do {
+        vi = Math.floor(Math.random() * 8); fi = Math.floor(Math.random() * 6);
+        pl = facePlane(spec, fi);
+        foot = spec.V[vi].clone().sub(pl.n.clone().multiplyScalar(pl.n.dot(spec.V[vi]) - pl.d));
+        tries++;
+      } while (tries < 200 && (spec.F[fi].indexOf(vi) >= 0));
+      var ans = vertexOfPoint(spec, foot), opts = spec.F[fi].map(function (v) { return spec.names[v]; });
+      var m = mix(spec.names[ans], opts);
+      return choiceStep({
+        chip: 'Куб · проекция', prompt: spec.names[vi] + ' нүктесінің ' + faceName(spec, fi) + ' жазықтығындағы проекциясы қай нүкте?',
+        hint: 'Проекция дегеніміз нүктеден жазықтыққа түсірілген перпендикулярдың табаны.',
+        answers: m.answers, correct: m.correct,
+        solution: spec.names[vi] + ' нүктесінен ' + faceName(spec, fi) + ' жазықтығына перпендикуляр түсіреміз: оның табаны ' + spec.names[ans] + ' нүктесі. Куб жақтарына перпендикуляр қырлар болғандықтан, перпендикуляр кубтың қыры болып шығады.',
+        build: function (viewer) {
+          var fig = openFig(viewer, spec, 0.05, -0.55, true);
+          fig.setFace(fi, COL.sel, 0.4);
+          fig.dot(spec.V[vi], COL.warm, 0.11);
+          return fig;
+        },
+        reveal: function (fig) { fig.seg(spec.V[vi], foot, COL.ok, 0.05); fig.dot(foot, COL.ok, 0.1); }
+      });
+    };
+  }
+  /* angle between skew lines (edges / face diagonals of a cube) */
+  function gSkewAngle() {
+    var spec = makeSpec('prism', 4), segs = [], i, j;
+    spec.edges.forEach(function (e) { segs.push([e.a, e.b]); });
+    spec.F.forEach(function (f) { segs.push([f[0], f[2]]); segs.push([f[1], f[3]]); });
+    var res = null, tries = 0;
+    while (!res && tries++ < 500) {
+      var s1 = pick(segs), s2 = pick(segs);
+      if (s1 === s2 || s1[0] === s2[0] || s1[0] === s2[1] || s1[1] === s2[0] || s1[1] === s2[1]) continue;
+      var u = spec.V[s1[1]].clone().sub(spec.V[s1[0]]), v = spec.V[s2[1]].clone().sub(spec.V[s2[0]]);
+      var w = spec.V[s2[0]].clone().sub(spec.V[s1[0]]);
+      if (u.clone().cross(v).length() < 1e-6) continue;
+      if (Math.abs(u.dot(v.clone().cross(w))) < 1e-6) continue;
+      var c = Math.abs(u.dot(v)) / (u.length() * v.length());
+      var deg = Math.round(Math.acos(Math.min(1, c)) * 180 / Math.PI);
+      if ([45, 60, 90].indexOf(deg) < 0) continue;
+      res = { s1: s1, s2: s2, deg: deg, u: u, v: v };
+    }
+    var nm = function (s) { return spec.names[s[0]] + spec.names[s[1]]; };
+    var cs = { 45: '√2/2', 60: '1/2', 90: '0' }[res.deg];
+    var m = mix(res.deg + '°', ['30°', '45°', '60°', '90°']);
+    return choiceStep({
+      chip: 'Куб · айқас түзулер бұрышы', prompt: nm(res.s1) + ' және ' + nm(res.s2) + ' айқас түзулері арасындағы бұрышты тап.',
+      hint: 'Бір түзуді өзіне параллель көшір, сонда қиылысатын түзулер шығады. Немесе векторлармен есепте.',
+      answers: m.answers, correct: m.correct,
+      solution: 'Куб қырын 2 деп алсақ, ' + nm(res.s1) + ' = ' + res.u.length().toFixed(2).replace(/\.?0+$/, '') + ', ' + nm(res.s2) + ' = ' + res.v.length().toFixed(2).replace(/\.?0+$/, '') + '. Бағыттаушы векторлардың скаляр көбейтіндісі ' + Math.abs(res.u.dot(res.v)).toFixed(0) + ', сондықтан cos φ = ' + cs + ' және φ = ' + res.deg + '°.',
+      build: function (viewer) {
+        var fig = openFig(viewer, spec, 0.05, -0.55, true);
+        fig.vseg(res.s1[0], res.s1[1], COL.sel, 0.055); fig.vseg(res.s2[0], res.s2[1], COL.warm, 0.055);
+        return fig;
+      }
+    });
+  }
+
+  var iParFace = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Түзу мен жазықтықтың параллельдігі',
+      body: 'Түзу жазықтықта жатпай, сол жазықтықтағы қандай да бір түзуге параллель болса, ол жазықтыққа параллель. A₁B₁ қыры ABCD жазықтығында жатпайды және AB қырына параллель, сондықтан A₁B₁ ∥ ABCD.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        fig.setFace(0, COL.sel, 0.4); fig.vseg(0, 1, COL.sel, 0.05); fig.vseg(4, 5, COL.ok, 0.055);
+      }
+    });
+  };
+  var iParPlane = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Параллель жазықтықтар',
+      body: 'Бір жазықтықтағы екі қиылысатын түзу екінші жазықтықтағы екі түзуге параллель болса, жазықтықтар параллель. Кубтың қарсы жақтары параллель: ABCD ∥ A₁B₁C₁D₁. Үшінші жазықтық оларды параллель түзулер бойымен қияды: қима жасағанда осы ереже жиі керек.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        fig.setFace(0, COL.sel, 0.4); fig.setFace(1, COL.ok, 0.4);
+      }
+    });
+  };
+  var iPerpPlane = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Перпендикуляр жазықтықтар',
+      body: 'Жазықтық екінші жазықтыққа перпендикуляр түзу арқылы өтсе, олар перпендикуляр. AA₁ ⟂ ABCD, ал AA₁ түзуі ABB₁A₁ жазықтығында жатыр, сондықтан ABB₁A₁ ⟂ ABCD.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        fig.setFace(0, COL.sel, 0.4); fig.setFace(2, COL.warm, 0.4); fig.vseg(0, 4, COL.ok, 0.055);
+      }
+    });
+  };
+  var i3Perp = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Үш перпендикуляр теоремасы',
+      body: 'Жазықтықтағы түзу қиғаштың проекциясына перпендикуляр болса, ол қиғашқа да перпендикуляр. A₁C қиғашының ABCD жазықтығындағы проекциясы AC. BD ⟂ AC болғандықтан BD ⟂ A₁C.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        fig.setFace(0, COL.sel, 0.3); fig.vseg(4, 2, COL.warm, 0.05); fig.vseg(0, 2, COL.grey, 0.04); fig.vseg(1, 3, COL.ok, 0.05);
+      }
+    });
+  };
+  var iProj = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Нүктенің жазықтыққа проекциясы',
+      body: 'Нүктеден жазықтыққа перпендикуляр түсірсек, оның табаны сол нүктенің проекциясы болады. A₁ нүктесінің ABCD жазықтығындағы проекциясы — A. Фигураның проекциясы — барлық нүктелерінің проекциялары.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        fig.setFace(0, COL.sel, 0.4); fig.vseg(4, 0, COL.ok, 0.055); fig.dot(spec.V[4], COL.warm, 0.11);
+      }
+    });
+  };
+  var iSkewAngle = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Айқас түзулер арасындағы бұрыш',
+      body: 'Біреуін өзіне параллель көшіріп, екіншісімен қиылыстырамыз. AB₁ және BC₁ айқас. AB₁ ∥ DC₁, сондықтан бұрыш ∠(DC₁, BC₁). BC₁D үшбұрышының барлық қабырғасы кубтың жақ диагоналі, ол тең қабырғалы, демек бұрыш 60°.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        fig.vseg(0, 5, COL.warm, 0.05); fig.vseg(1, 6, COL.sel, 0.05); fig.vseg(3, 6, COL.grey, 0.04); fig.vseg(1, 3, COL.grey, 0.04);
+      }
+    });
+  };
+  var iDih = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Екіжақты бұрыш',
+      body: 'Екі жазықтықтың қиылысу сызығына перпендикуляр түзулер арасындағы бұрыш — екіжақты бұрыштың сызықтық бұрышы. ABCD және ABC₁D₁ жазықтықтары AB бойымен қиылысады. AD ⟂ AB және AD₁ ⟂ AB, сондықтан бұрыш ∠DAD₁ = 45°.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        fig.setFace(0, COL.sel, 0.3); fig.poly([spec.V[0], spec.V[1], spec.V[6], spec.V[7]], COL.warm);
+        fig.vseg(0, 1, COL.ok, 0.055); fig.vseg(0, 3, COL.sel, 0.045); fig.vseg(0, 7, COL.warm, 0.045);
+      }
+    });
+  };
+  var iDist = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Қашықтық: ең қысқа жол',
+      body: 'Нүктеден нүктеге қашықтық — кесінді ұзындығы (Пифагор теоремасы). Нүктеден жазықтыққа және айқас түзулер арасындағы қашықтық — ортақ перпендикулярдың ұзындығы. Кубтың диагоналі: AC₁ = a√3.',
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        fig.vseg(0, 6, COL.warm, 0.05); fig.vseg(0, 2, COL.grey, 0.035); fig.vseg(2, 6, COL.grey, 0.035);
+      }
+    });
+  };
+  var iVol = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Көлем формулалары',
+      body: 'Призма: V = S · h, мұнда S — негіздің ауданы, h — биіктік. Пирамида: V = (1/3) · S · h. Пирамида көлемі сол негізі мен биіктігі бар призма көлемінің үштен бірі.',
+      build: function (viewer) {
+        var spec = makeSpec('pyr', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        fig.setFace(0, COL.sel, 0.35); fig.seg(spec.V[4], new THREE.Vector3(0, -1, 0), COL.warm, 0.05);
+      }
+    });
+  };
+  var iTrace = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Із әдісі: қиманы тұрғызу',
+      body: 'Қима жазықтығы әр жақты түзу бойымен қияды. Бір жақта екі нүкте болса, оларды қосамыз. Егер нүкте жеткіліксіз болса, қима түзуін жақтың қырымен қиылысқанша созамыз: шыққан нүкте (із) көрші жаққа да тиесілі. Мысалы, M = A, N мен K — жоғарғы жақ қырларының орталары. Төмендегі түймемен Практикада қадамдап көр.',
+      cta: { label: 'Практикада көру', preset: { kind: 'cube', adv: false, pts: [{ t: 'v', i: 0 }, { t: 'e', i: 5, u: 0.5 }, { t: 'e', i: 6, u: 0.5 }], cut: true } },
+      build: function (viewer) {
+        var spec = makeSpec('prism', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        var gp = [spec.V[0], spec.edges[5].mid, spec.edges[6].mid], poly = sectionPolygon(spec, gp);
+        if (poly) fig.poly(poly, COL.warm);
+      }
+    });
+  };
+  var iOwn = function () {
+    return infoStep({
+      chip: 'Түсінік', title: 'Өзің тұрғыз',
+      body: 'Практикада «Кеңейтілген» режимде үш нүктені таңда да «Өзім тұрғызамын» түймесін бас. Бір жақта жатқан екі нүктені қосып, қиманың қабырғаларын өзің жүргізесің. Қиын жерде «Көмек» түймесі бар. Төмендегі түйме пирамидадағы мысалды ашады.',
+      cta: { label: 'Мысалды ашу', preset: { kind: 'pyr', adv: true, pts: [{ t: 'v', i: 0 }, { t: 'e', i: 1, u: 0.5 }, { t: 'e', i: 6, u: 0.5 }], own: true } },
+      build: function (viewer) {
+        var spec = makeSpec('pyr', 4), fig = openFig(viewer, spec, 0.05, -0.55, true);
+        var gp = [spec.V[0], spec.edges[1].mid, spec.edges[6].mid], poly = sectionPolygon(spec, gp);
+        if (poly) fig.poly(poly, COL.warm);
+      }
+    });
+  };
+
+  /* ---------- course content ---------- */
+  var TOPICS = [
+    {
+      id: 't1', title: 'Кеңістік және фигуралар', sub: 'Призма, пирамида, куб',
+      lessons: [
+        { id: '1-1', title: 'Жақ, қыр, төбе', f: [iFEV, fPick('prism', 3, 'base-face'), fPick('prism', 3, 'lat-face'), fPick('prism', 3, 'base-edge'), fPick('prism', 3, 'lat-edge'), fPick('pyr', 4, 'apex')] },
+        { id: '1-2', title: 'Призмалар', f: [iPrism, fPick('prism'), fPick('prism'), fPick('prism'), fCount('prism'), fCount('prism')] },
+        { id: '1-3', title: 'Пирамидалар', f: [iPyr, fPick('pyr', 0, 'apex'), fPick('pyr'), fPick('pyr'), fCount('pyr'), fCount('pyr')] },
+        { id: '1-4', title: 'Эйлер формуласы', f: [iEuler, fCount(), fCount(), fCount(), fCount()] },
+        { id: '1-5', title: 'Экранда жақын, кеңістікте жақын емес', f: [iScreen, fFace, fFace, fFace, fFace] }
+      ]
+    },
+    {
+      id: 't2', title: 'Түзулердің өзара орналасуы', sub: 'Параллель, қиылысатын, айқас',
+      lessons: [
+        { id: '2-1', title: 'Параллель қырлар', f: [iPar, fRel('par'), fRel('par'), fRel('par')] },
+        { id: '2-2', title: 'Қиылысатын және айқас қырлар', f: [iSkew, fRel('int'), fRel('skew'), fRel('skew'), fRel('int')] }
+      ]
+    },
+    {
+      id: 't3', title: 'Қималар', sub: 'Үш нүкте арқылы өтетін жазықтық',
+      lessons: [
+        { id: '3-1', title: 'Қима дегеніміз не', f: [iSec1, fSec('prism', 4), fSec('prism', 4), fSec('prism', 4)] },
+        { id: '3-2', title: 'Үш нүкте арқылы қима', f: [iSec2, fSec('prism', 4, 5), fSec('prism', 4, 6), fSec('prism', 4), fSec('prism', 4)] },
+        { id: '3-3', title: 'Пирамида қималары', f: [iSec3, fSec('pyr', 4), fSec('pyr', 4), fSec('prism', 3)] },
+        { id: '3-4', title: 'Із әдісі', f: [iTrace, fSec('prism', 4, 5), fSec('prism', 4, 6), fSec('pyr', 4)] },
+        { id: '3-5', title: 'Қиманы өзің тұрғыз', f: [iOwn, fSec('prism', 3), fSec('pyr', 4), fSec('prism', 4, 6)] }
+      ]
+    },
+    {
+      id: 't4', title: 'Параллельдік', sub: 'Түзу мен жазықтық, жазықтықтар',
+      lessons: [
+        { id: '4-1', title: 'Түзу мен жазықтық параллельдігі', f: [iParFace, fParFace(), fParFace(), fParFace(), fParFace()] },
+        { id: '4-2', title: 'Параллель жазықтықтар', f: [iParPlane, fParPlane(), fParPlane(), fParPlane(), fParPlane()] }
+      ]
+    },
+    {
+      id: 't5', title: 'Перпендикулярлық', sub: 'Түзу мен жазықтық, жазықтықтар',
+      lessons: [
+        { id: '2-3', title: 'Жазықтыққа перпендикуляр қыр', f: [iPerp, fPerp(), fPerp(), fPerp()] },
+        { id: '5-2', title: 'Перпендикуляр жазықтықтар', f: [iPerpPlane, fPerpPlane(), fPerpPlane(), fPerpPlane(), fPerpPlane()] },
+        { id: '5-3', title: 'Үш перпендикуляр теоремасы', f: [i3Perp, fPerp(), fPerpPlane(), fProj(), fProj()] }
+      ]
+    },
+    {
+      id: 't6', title: 'Проекциялар және бұрыштар', sub: 'Түзу мен жазықтық, айқас түзулер, екіжақты бұрыш',
+      lessons: [
+        { id: '6-1', title: 'Нүктенің проекциясы', f: [iProj, fProj(), fProj(), fProj(), fProj()] },
+        { id: '2-4', title: 'Түзу мен жазықтық бұрышы', f: [iAngle, gAngle1, gAngle2, gAngle3] },
+        { id: '6-3', title: 'Айқас түзулер бұрышы', f: [iSkewAngle, gSkewAngle, gSkewAngle, gSkewAngle, gSkewAngle] },
+        { id: '6-4', title: 'Екіжақты бұрыш', f: [iDih, gDih1, gDih2, gDih3] }
+      ]
+    },
+    {
+      id: 't7', title: 'Қашықтықтар', sub: 'Нүкте, түзу, жазықтық',
+      lessons: [
+        { id: '7-1', title: 'Нүктелер арасындағы қашықтық', f: [iDist, gDist1, gDist1, gDist2] },
+        { id: '7-2', title: 'Айқас түзулер арасы', f: [iDist, gDist3, gDist3] },
+        { id: '7-3', title: 'Пирамидадағы қашықтық', f: [iDist, gDist4, gDist4, gDist4] }
+      ]
+    },
+    {
+      id: 't8', title: 'Көлем және бет ауданы', sub: 'Призма, пирамида',
+      lessons: [
+        { id: '8-1', title: 'Пирамида көлемі', f: [iVol, gVol1, gVol1, gVol3] },
+        { id: '8-2', title: 'Бет ауданы', f: [iVol, gVol2, gVol2] },
+        { id: '8-3', title: 'Кубтың бөлігінің көлемі', f: [iVol, gVol3, gVol3, gVol1] }
+      ]
+    }
+  ];
+  /* helper used by lesson 1-1 (base edge on the triangular prism) */
+  function fFPick() { return fPick('prism', 3, 'base-edge'); }
+  var ALL_LESSONS = [];
+  TOPICS.forEach(function (t) { t.lessons.forEach(function (l) { l.topic = t.title; ALL_LESSONS.push(l); }); });
+  function lessonDone(l) { return (load().lessons[l.id] || 0) >= 0.6; }
+  function qCount(l) { return l.f.length - 1; }
+
+  /* ---------- player ---------- */
+  var V1 = null, V2 = null, V3 = null;
+  var P = null;
+  var origin = 'course';
+
+  function showPlayer(on) {
+    $('#player').hidden = !on;
+    $('#main').hidden = on;
+    $('#nav').hidden = on;
+    window.scrollTo(0, 0);
+  }
+  function play(meta, factories) {
+    P = { meta: meta, f: factories, i: 0, correct: 0, q: 0, marks: [], answered: false, cur: null };
+    $('#p-play').hidden = false;
+    $('#p-result').hidden = true;
+    showPlayer(true);
+    renderStep();
+  }
+  function renderBar() {
+    var bar = $('#p-bar'), h = '';
+    for (var k = 0; k < P.f.length; k++) {
+      var m = P.marks[k], c = m === 1 ? 'ok' : m === 0 ? 'bad' : m === 2 ? 'done' : (k === P.i ? 'cur' : '');
+      h += '<i class="' + c + '"></i>';
+    }
+    bar.innerHTML = h;
+  }
+  function renderStep() {
+    var step = P.f[P.i]();
+    P.cur = step; P.answered = false;
+    renderBar();
+    $('#p-chip').textContent = step.chip || '';
+    $('#p-title').textContent = step.title || '';
+    $('#p-body').textContent = step.body || '';
+    $('#p-fb').innerHTML = '';
+    var ans = $('#p-answers');
+    ans.innerHTML = '';
+    ans.hidden = step.kind !== 'choice';
+    var cta = $('#p-cta');
+    cta.hidden = !step.cta;
+    if (step.cta) { cta.textContent = step.cta.label; cta.onclick = function () { openPreset(step.cta.preset); }; }
+    var nb = $('#p-next');
+    nb.hidden = true;
+    nb.textContent = 'Жалғастыру';
+    nb.dataset.skip = '';
+    if (step.kind === 'choice') {
+      step.answers.forEach(function (t, i) {
+        var b = el('button', 'btn', t);
+        b.type = 'button';
+        b.addEventListener('click', function () { onChoice(i); });
+        ans.appendChild(b);
+      });
+    }
+    if (step.kind === 'info') { nb.hidden = false; nb.textContent = 'Түсіндім'; }
+    step.onTap = function (good, text) { finish(good, text); };
+    if (V1) { V1.clear(); step.build(V1); }
+    else if (step.kind !== 'info') { nb.hidden = false; nb.textContent = 'Өткізіп жіберу'; nb.dataset.skip = '1'; }
+  }
+  function onChoice(i) {
+    if (P.answered) return;
+    var r = P.cur.check(i), btns = $('#p-answers').children;
+    btns[r.correctIndex].classList.add('ok');
+    if (!r.ok) btns[i].classList.add('bad');
+    for (var k = 0; k < btns.length; k++) btns[k].disabled = true;
+    finish(r.ok, r.text);
+  }
+  function finish(good, text) {
+    if (P.answered) return;
+    P.answered = true;
+    P.q++;
+    if (good) P.correct++;
+    P.marks[P.i] = good ? 1 : 0;
+    var box = el('div', 'fb ' + (good ? 'ok' : 'bad'));
+    var b = el('b', '', good ? 'Дұрыс!' : 'Қате. Дұрыс жауап жасыл түспен көрсетілді.');
+    box.appendChild(b);
+    box.appendChild(document.createTextNode(text || ''));
+    $('#p-fb').innerHTML = '';
+    $('#p-fb').appendChild(box);
+    var nb = $('#p-next');
+    nb.hidden = false;
+    nb.textContent = P.i === P.f.length - 1 ? 'Нәтижені көру' : 'Жалғастыру';
+    renderBar();
+  }
+  $('#p-next').addEventListener('click', function () {
+    var cur = P.cur;
+    if (cur.kind === 'info') P.marks[P.i] = 2;
+    else if (!P.answered) P.marks[P.i] = 2;
+    P.i++;
+    if (P.i >= P.f.length) result(); else renderStep();
+  });
+  function result() {
+    $('#p-play').hidden = true;
+    $('#p-result').hidden = false;
+    $('#p-bar').innerHTML = new Array(P.f.length + 1).join('<i class="done"></i>');
+    var c = P.correct, t = P.q;
+    $('#r-score').innerHTML = c + '<span> / ' + t + '</span>';
+    var fr = t ? c / t : 0;
+    $('#r-verdict').textContent = fr >= 0.8 ? 'Тамаша! Кеңістіктік көру жақсы жұмыс істеп тұр.' : fr >= 0.5 ? 'Жақсы нәтиже. Қате кеткен жерлерді қайта қарап шық.' : 'Фигураны айналдырып, әр жағын бөлек тексеруді жалғастыр.';
+    var gain = c * 10 + (fr >= 0.6 ? 5 : 0);
+    $('#r-xp').textContent = '+' + gain + ' ұпай';
+    var s = load();
+    s.xp += c * 10 + (fr >= 0.6 ? 5 : 0);
+    s.solved += t; s.correct += c;
+    P.meta.record(c, t, s);
+    touchStreak();
+    save();
+  }
+  $('#r-again').addEventListener('click', function () { play(P.meta, P.f); });
+  $('#r-close').addEventListener('click', closePlayer);
+  $('#p-close').addEventListener('click', closePlayer);
+  $('#p-reset').addEventListener('click', function () { if (V1) V1.reset(); });
+  function openPreset(p) {
+    if (V1) { V1.setTap(null); V1.clear(); }
+    showPlayer(false);
+    origin = 'sandbox';
+    showView('sandbox');
+    sbTab('sec');
+    sbPreset(p);
+  }
+  function closePlayer() {
+    if (V1) { V1.setTap(null); V1.clear(); }
+    showPlayer(false);
+    showView(origin);
+  }
+
+  /* ---------- views ---------- */
+  function showView(name) {
+    ['course', 'sandbox', 'gloss', 'ubt', 'profile'].forEach(function (v) { $('#v-' + v).hidden = v !== name; });
+    document.querySelectorAll('.nav-btn').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.v === name ? 'true' : 'false'); });
+    if (name === 'course') renderCourse();
+    if (name === 'gloss') renderGloss();
+    if (name === 'ubt') renderUbt();
+    if (name === 'profile') renderProfile();
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('.nav-btn').forEach(function (b) { b.addEventListener('click', function () { origin = b.dataset.v; showView(b.dataset.v); }); });
+
+  function startLesson(l) {
+    origin = 'course';
+    play({ record: function (c, t, s) { var fr = t ? c / t : 0; s.lessons[l.id] = Math.max(s.lessons[l.id] || 0, fr); } }, l.f);
+  }
+  function renderCourse() {
+    var s = load();
+    var sk = streakNow();
+    $('#streak-pill').textContent = 'Қатар: ' + sk + ' күн';
+    var next = ALL_LESSONS.filter(function (l) { return !lessonDone(l); })[0] || ALL_LESSONS[0];
+    var done = ALL_LESSONS.filter(lessonDone).length;
+    $('#hero-eyebrow').textContent = done >= ALL_LESSONS.length ? 'Курс аяқталды' : 'Келесі сабақ';
+    $('#hero-title').textContent = next.title;
+    $('#hero-sub').textContent = next.topic + ' · ~5 минут · ' + qCount(next) + ' сұрақ';
+    $('#hero-bar').innerHTML = ALL_LESSONS.map(function (l) { return '<i class="' + (lessonDone(l) ? 'ok' : l === next ? 'cur' : '') + '"></i>'; }).join('');
+    var go = $('#hero-go');
+    go.textContent = done >= ALL_LESSONS.length ? 'Қайта өту' : (done ? 'Жалғастыру' : 'Бастау');
+    go.onclick = function () { startLesson(next); };
+    var wrap = $('#topics');
+    wrap.innerHTML = '';
+    TOPICS.forEach(function (t) {
+      var card = el('div', 'card topic');
+      var head = el('div', 'topic-head');
+      var left = el('div');
+      left.appendChild(el('h3', '', t.title));
+      left.appendChild(el('p', 'hint', t.sub));
+      head.appendChild(left);
+      var nd = t.lessons.filter(lessonDone).length;
+      head.appendChild(el('span', '', nd + '/' + t.lessons.length));
+      card.appendChild(head);
+      var list = el('div', 'lessons');
+      t.lessons.forEach(function (l, i) {
+        var b = el('button', 'lesson');
+        b.type = 'button';
+        var d = el('span', 'dot' + (lessonDone(l) ? ' done' : ''), lessonDone(l) ? '✓' : String(i + 1));
+        var tt = el('span', 't', l.title);
+        var nn = el('span', 'n', qCount(l) + ' сұрақ');
+        b.appendChild(d); b.appendChild(tt); b.appendChild(nn);
+        b.addEventListener('click', function () { startLesson(l); });
+        list.appendChild(b);
+      });
+      card.appendChild(list);
+      wrap.appendChild(card);
+    });
+  }
+
+  function startUbt(id, gens, title) {
+    origin = 'ubt';
+    var f = [];
+    while (f.length < 5) f = f.concat(shuffle(gens));
+    f = f.slice(0, 5);
+    play({
+      record: function (c, t, s) {
+        var u = s.ubt[id] || { solved: 0, correct: 0 };
+        u.solved += t; u.correct += c; s.ubt[id] = u;
+      }
+    }, f);
+  }
+  function renderUbt() {
+    var s = load();
+    var all = [];
+    UBT.forEach(function (t) { all = all.concat(t.gens); });
+    $('#ubt-mix').onclick = function () { startUbt('mix', all); };
+    var wrap = $('#ubt-topics');
+    wrap.innerHTML = '';
+    UBT.forEach(function (t) {
+      var u = s.ubt[t.id] || { solved: 0, correct: 0 };
+      var card = el('div', 'card topic');
+      var head = el('div', 'topic-head');
+      head.appendChild(el('h3', '', t.title));
+      head.appendChild(el('span', '', u.solved ? u.correct + '/' + u.solved + ' дұрыс' : 'жаңа'));
+      card.appendChild(head);
+      card.appendChild(el('p', 'hint', t.gens.length + ' түрлі есеп, сандары кездейсоқ өзгереді'));
+      var b = el('button', 'btn primary', '5 есеп шешу');
+      b.type = 'button';
+      b.addEventListener('click', function () { startUbt(t.id, t.gens); });
+      card.appendChild(b);
+      wrap.appendChild(card);
+    });
+  }
+  function renderProfile() {
+    var s = load();
+    var tg2 = null;
+    try { tg2 = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user; } catch (e) {}
+    $('#pf-name').textContent = tg2 && tg2.first_name ? tg2.first_name : 'Оқушы';
+    var acc = s.solved ? Math.round((s.correct / s.solved) * 100) + '%' : '0%';
+    var st = [[s.xp, 'ұпай'], [streakNow(), 'күн қатар'], [acc, 'дұрыс жауап'], [ALL_LESSONS.filter(lessonDone).length + '/' + ALL_LESSONS.length, 'сабақ өтілді']];
+    $('#pf-stats').innerHTML = st.map(function (x) { return '<div class="stat"><b>' + x[0] + '</b><span>' + x[1] + '</span></div>'; }).join('');
+    var h = '';
+    UBT.forEach(function (t) {
+      var u = s.ubt[t.id] || { solved: 0, correct: 0 };
+      h += '<div class="mini"><span>' + t.title + '</span><span>' + u.correct + ' / ' + u.solved + '</span></div>';
+    });
+    var mx = s.ubt.mix || { solved: 0, correct: 0 };
+    h += '<div class="mini"><span>Аралас жаттығу</span><span>' + mx.correct + ' / ' + mx.solved + '</span></div>';
+    $('#pf-topics').innerHTML = h;
+    var rb = $('#pf-reset');
+    rb.textContent = 'Прогресті өшіру';
+    rb.dataset.arm = '';
+  }
+  $('#pf-reset').addEventListener('click', function () {
+    var rb = $('#pf-reset');
+    if (rb.dataset.arm !== '1') { rb.dataset.arm = '1'; rb.textContent = 'Растау үшін қайта бас'; return; }
+    mem = { xp: 0, streak: 0, last: '', solved: 0, correct: 0, lessons: {}, ubt: {} };
+    save();
+    renderProfile();
+  });
+
+  /* ---------- sandbox: sections ---------- */
+  var SBFIGS = [['cube', 'Куб'], ['pyr', 'Төртбұрышты пирамида'], ['tetra', 'Тетраэдр'], ['tri', 'Үшбұрышты призма']];
+  var SB = { kind: 'cube', adv: false, dims: [1, 1, 1], spec: null, fig: null, pts: [], dyn: null, mids: null, view: 'build', cut: null, E: null, stepI: 0, sel: -1, hints: 0, awarded: false };
+  var PLAB = ['M', 'N', 'K'];
+
+  function sbBase() {
+    return SB.kind === 'cube' ? makeSpec('prism', 4) : SB.kind === 'pyr' ? makeSpec('pyr', 4) : SB.kind === 'tetra' ? makeSpec('pyr', 3) : makeSpec('prism', 3);
+  }
+  function posOf(spec, d) {
+    if (d.t === 'v') return spec.V[d.i].clone();
+    if (d.t === 'e') { var e = spec.edges[d.i]; return spec.V[e.a].clone().lerp(spec.V[e.b], d.u); }
+    var p = new THREE.Vector3(), f = spec.F[d.fi];
+    d.w.forEach(function (w, k) { p.add(spec.V[f[k]].clone().multiplyScalar(w)); });
+    return p;
+  }
+  function ratioText(u) {
+    var fr = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5]];
+    for (var i = 0; i < fr.length; i++) if (Math.abs(u - fr[i][0] / fr[i][1]) < 0.02) return fr[i][0] + '/' + fr[i][1];
+    return Math.round(u * 100) + '%';
+  }
+  function descOf(spec, d) {
+    if (d.t === 'v') return spec.names[d.i] + ' төбесі';
+    if (d.t === 'e') {
+      var e = spec.edges[d.i];
+      if (Math.abs(d.u - 0.5) < 0.02) return edgeName(spec, d.i) + ' қырының ортасы';
+      return edgeName(spec, d.i) + ' қырында: ' + spec.names[e.a] + ' төбесінен ' + ratioText(d.u) + ' қашықтықта';
+    }
+    return faceName(spec, d.fi) + ' жағының ішінде';
+  }
+  function sbStatus(cls, t) { var s = $('#sb-status'); s.hidden = false; s.className = 'status ' + cls; s.textContent = t; }
+  function clearDyn() {
+    if (!SB.dyn) return;
+    while (SB.dyn.children.length) { var c = SB.dyn.children[0]; SB.dyn.remove(c); if (V2) V2.dispose(c); }
+  }
+  function sbBuild(keepView) {
+    if (!V2) return;
+    V2.clear();
+    if (!keepView) V2.setInitial(0.5, -0.55);
+    var spec = scaleSpec(sbBase(), SB.dims[0], SB.dims[1], SB.dims[2]);
+    var fig = buildFigure(V2, spec, 0.075);
+    fig.names();
+    SB.spec = spec; SB.fig = fig;
+    SB.mids = new THREE.Group();
+    spec.edges.forEach(function (e) {
+      var m = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10), new THREE.MeshLambertMaterial({ color: COL.mid }));
+      m.position.copy(e.mid); SB.mids.add(m);
+    });
+    fig.group.add(SB.mids);
+    SB.dyn = new THREE.Group();
+    V2.root.add(SB.dyn);
+    V2.setTap(sbTap);
+    SB.view = 'build'; SB.cut = null; SB.E = null; SB.sel = -1;
+    sbRender();
+  }
+
+  /* geometry helpers for the cut */
+  function polyMesh(pts, color, op) {
+    var pos = [], idx = [];
+    pts.forEach(function (p) { pos.push(p.x, p.y, p.z); });
+    for (var k = 1; k < pts.length - 1; k++) idx.push(0, k, k + 1);
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    return new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: color, transparent: true, opacity: op, side: THREE.DoubleSide, depthWrite: false }));
+  }
+  function outline(pts, color) {
+    var g = new THREE.BufferGeometry().setFromPoints(pts);
+    return new THREE.LineLoop(g, new THREE.LineBasicMaterial({ color: color }));
+  }
+  function clipPoly(pts, pl, sg) {
+    var out = [];
+    for (var i = 0; i < pts.length; i++) {
+      var a = pts[i], b = pts[(i + 1) % pts.length];
+      var da = sg * (pl.n.dot(a) - pl.d), db = sg * (pl.n.dot(b) - pl.d);
+      if (da >= -1e-9) out.push(a.clone());
+      if ((da > 1e-9 && db < -1e-9) || (da < -1e-9 && db > 1e-9)) out.push(a.clone().lerp(b, da / (da - db)));
+    }
+    return out.length >= 3 ? out : null;
+  }
+
+  function sbGP() { return SB.pts.map(function (d) { return posOf(SB.spec, d); }); }
+  function pointCol(k) { return [COL.sel, COL.warm, COL.ok][k]; }
+
+  /* draw the construction state of an engine (steps 0..upto) */
+  function drawEngine(E, upto, spec) {
+    var g = SB.dyn, i, st, vis = E.known.slice(0, 3).slice();
+    for (i = 0; i <= upto; i++) {
+      st = E.steps[i];
+      if (!st) continue;
+      st.segs.forEach(function (sg) {
+        if (sg.style === 'side') g.add(cylBetween(sg.a, sg.b, 0.045, COL.warm));
+        else g.add(cylBetween(sg.a, sg.b, sg.style === 'ext' ? 0.016 : 0.022, sg.style === 'ext' ? 0xaab6cf : COL.grey));
+      });
+      st.newPts.forEach(function (p) { vis.push(p); });
+    }
+    var last = E.steps[upto];
+    if (last && last.polygon) {
+      g.add(polyMesh(E.poly, COL.warm, 0.45));
+      E.poly.forEach(function (p) { var d = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), new THREE.MeshLambertMaterial({ color: COL.warm })); d.position.copy(p); g.add(d); });
+    }
+    vis.forEach(function (p) {
+      var col = p.kind === 'given' ? pointCol(PLAB.indexOf(p.label)) : p.kind === 'trace' ? COL.grey : COL.warm;
+      var d = new THREE.Mesh(new THREE.SphereGeometry(p.kind === 'vertex' ? 0.1 : 0.085, 14, 10), new THREE.MeshLambertMaterial({ color: col }));
+      d.position.copy(p.pos); g.add(d);
+      if (p.kind !== 'vertex') {
+        var out = p.pos.clone().normalize().multiplyScalar(0.36);
+        var s = labelSprite(p.label, hexCss(col), 0.42);
+        s.position.copy(p.pos).add(out); g.add(s);
+      }
+    });
+    var hi = last ? last.faces : [];
+    spec.F.forEach(function (f, fi) { SB.fig.setFace(fi, hi.indexOf(fi) >= 0 ? COL.sel : COL.face, hi.indexOf(fi) >= 0 ? 0.32 : 0.2); });
+  }
+
+  function sbRender() {
+    if (!V2 || !SB.fig) return;
+    clearDyn();
+    var spec = SB.spec, i;
+    SB.fig.group.visible = SB.view !== 'cut';
+    SB.mids.visible = !SB.adv && SB.view === 'build';
+    if (SB.view !== 'analysis' && SB.view !== 'own') spec.F.forEach(function (f, fi) { SB.fig.setFace(fi, COL.face, 0.3); });
+    if (SB.view === 'build') {
+      SB.pts.forEach(function (d, k) {
+        var pos = posOf(spec, d);
+        var m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 10), new THREE.MeshLambertMaterial({ color: pointCol(k) }));
+        m.position.copy(pos); SB.dyn.add(m);
+        var s = labelSprite(PLAB[k], hexCss(pointCol(k)), 0.46);
+        s.position.copy(pos).add(pos.clone().normalize().multiplyScalar(0.4)); SB.dyn.add(s);
+      });
+    } else if (SB.view === 'cut' && SB.cut) {
+      SB.dyn.add(SB.cut.group);
+    } else if (SB.view === 'analysis' && SB.E) {
+      drawEngine(SB.E, SB.stepI, spec);
+    } else if (SB.view === 'own' && SB.E) {
+      drawEngine(SB.E, SB.E.steps.length - 1, spec);
+      if (SB.sel >= 0 && SB.E.known[SB.sel]) {
+        var r = new THREE.Mesh(new THREE.SphereGeometry(0.17, 16, 12), new THREE.MeshLambertMaterial({ color: COL.sel, transparent: true, opacity: 0.35 }));
+        r.position.copy(SB.E.known[SB.sel].pos); SB.dyn.add(r);
+      }
+    }
+    sbUi();
+  }
+
+  /* ----- UI state ----- */
+  function sbUi() {
+    var spec = SB.spec, n = SB.pts.length, box = $('#sb-chips');
+    box.innerHTML = '';
+    $('#sb-status').hidden = SB.view === 'analysis' || SB.view === 'own';
+    $('#sb-panel').hidden = SB.view !== 'analysis' && SB.view !== 'own';
+    $('#sb-an').hidden = SB.view !== 'analysis';
+    $('#sb-own').hidden = SB.view !== 'own';
+    var canCut = n === 3 && SB.view !== 'own';
+    $('#sb-cut').hidden = SB.view === 'own';
+    $('#sb-cut').textContent = SB.view === 'cut' ? (SB.cut && SB.cut.apart ? 'Жинау' : 'Бөліп көрсету') : 'Қию';
+    $('#sb-cut').disabled = !canCut;
+    $('#sb-analyze').hidden = SB.view === 'own';
+    $('#sb-analyze').disabled = !canCut;
+    $('#sb-build').hidden = !SB.adv || SB.view === 'own';
+    $('#sb-build').disabled = n !== 3;
+    $('#sb-clear').hidden = SB.view === 'own';
+    $('#sb-back').hidden = SB.view === 'build';
+    if (SB.view === 'own') {
+      SB.E.known.forEach(function (k, i) {
+        var b = el('button', 'chip-btn' + (i === SB.sel ? ' on' : ''), k.label);
+        b.type = 'button';
+        b.addEventListener('click', function () { ownPick(i); });
+        box.appendChild(b);
+      });
+      return;
+    }
+    SB.pts.forEach(function (d, k) {
+      var b = el('div', 'pchip');
+      var dot = el('span', 'pdot', PLAB[k]); dot.style.background = hexCss(pointCol(k));
+      var t = el('span', 'ptxt', descOf(spec, d));
+      var x = el('button', 'px', '×'); x.type = 'button'; x.setAttribute('aria-label', PLAB[k] + ' нүктесін өшіру');
+      x.addEventListener('click', function () { SB.pts.splice(k, 1); SB.view = 'build'; SB.cut = null; SB.E = null; sbRender(); });
+      b.appendChild(dot); b.appendChild(t); b.appendChild(x);
+      box.appendChild(b);
+    });
+    if (SB.view === 'build') {
+      if (n < 3) sbStatus('', 'Нүкте қой: ' + n + ' / 3. ' + (SB.adv ? 'Төбені, қырдың кез келген жерін немесе жақтың ішін түрт.' : 'Төбені (қара шар) немесе қырдың ортасын (көгілдір шар) түрт.'));
+      else if (!sectionPolygon(spec, sbGP())) sbStatus('bad', 'Бұл үш нүктеден қима шықпайды: олар бір түзуде жатыр немесе жазықтық фигураға тек қырымен тиеді. Нүктелердің бірін өзгерт.');
+      else sbStatus('ok', 'Үш нүкте дайын. Қима жазықтығын көру үшін «Қию» түймесін бас.');
+    }
+  }
+
+  /* ----- placing points ----- */
+  function sbSnap(x, y) {
+    var spec = SB.spec, i, best = null, bd = 1e9;
+    for (i = 0; i < spec.V.length; i++) {
+      var p = V2.project(spec.V[i]), d = Math.hypot(p.x - x, p.y - y);
+      if (d < bd) { bd = d; best = { t: 'v', i: i }; }
+    }
+    if (bd < 22) return best;
+    bd = 1e9; best = null;
+    if (!SB.adv) {
+      for (i = 0; i < spec.edges.length; i++) {
+        var q = V2.project(spec.edges[i].mid), dq = Math.hypot(q.x - x, q.y - y);
+        if (dq < bd) { bd = dq; best = { t: 'e', i: i, u: 0.5 }; }
+      }
+      return bd < 26 ? best : null;
+    }
+    var bu = 0.5;
+    for (i = 0; i < spec.edges.length; i++) {
+      var a = V2.project(spec.V[spec.edges[i].a]), b = V2.project(spec.V[spec.edges[i].b]);
+      var vx = b.x - a.x, vy = b.y - a.y;
+      var u = ((x - a.x) * vx + (y - a.y) * vy) / (vx * vx + vy * vy || 1);
+      u = Math.max(0, Math.min(1, u));
+      var dd = Math.hypot(a.x + u * vx - x, a.y + u * vy - y);
+      if (dd < bd) { bd = dd; best = i; bu = u; }
+    }
+    if (bd < 14) {
+      [0.5, 0.25, 0.75, 1 / 3, 2 / 3].forEach(function (s) { if (Math.abs(bu - s) < 0.045) bu = s; });
+      bu = Math.max(0.05, Math.min(0.95, bu));
+      return { t: 'e', i: best, u: bu };
+    }
+    var hit = V2.rayHit(x, y, SB.fig.faceMeshes);
+    if (hit) {
+      var fi = hit.object.userData.id, f = spec.F[fi], loc = V2.root.worldToLocal(hit.point.clone());
+      for (var k = 1; k < f.length - 1; k++) {
+        var w = bary(loc, spec.V[f[0]], spec.V[f[k]], spec.V[f[k + 1]]);
+        if (w && w[0] > -0.02 && w[1] > -0.02 && w[2] > -0.02) {
+          var ws = f.map(function () { return 0; });
+          ws[0] += Math.max(0, w[0]); ws[k] += Math.max(0, w[1]); ws[k + 1] += Math.max(0, w[2]);
+          var sm = ws.reduce(function (s, v) { return s + v; }, 0);
+          return { t: 'f', fi: fi, w: ws.map(function (v) { return v / sm; }) };
+        }
+      }
+    }
+    return null;
+  }
+  function bary(p, a, b, c) {
+    var v0 = b.clone().sub(a), v1 = c.clone().sub(a), v2 = p.clone().sub(a);
+    var d00 = v0.dot(v0), d01 = v0.dot(v1), d11 = v1.dot(v1), d20 = v2.dot(v0), d21 = v2.dot(v1);
+    var den = d00 * d11 - d01 * d01;
+    if (Math.abs(den) < 1e-9) return null;
+    var v = (d11 * d20 - d01 * d21) / den, w = (d00 * d21 - d01 * d20) / den;
+    return [1 - v - w, v, w];
+  }
+  function sbTap(x, y) {
+    if (SB.view === 'own') { ownTapXY(x, y); return; }
+    var d = sbSnap(x, y);
+    if (!d) return;
+    var pos = posOf(SB.spec, d), k;
+    for (k = 0; k < SB.pts.length; k++) {
+      if (posOf(SB.spec, SB.pts[k]).distanceTo(pos) < 0.05) { SB.pts.splice(k, 1); SB.view = 'build'; SB.cut = null; sbRender(); return; }
+    }
+    if (SB.pts.length >= 3) SB.pts = [];
+    SB.pts.push(d);
+    SB.view = 'build'; SB.cut = null; SB.E = null;
+    sbRender();
+  }
+
+  /* ----- cut ----- */
+  function sbDoCut() {
+    var spec = SB.spec, gp = sbGP(), pl = planeOf(gp), poly = sectionPolygon(spec, gp);
+    if (!pl || !poly) return;
+    var grp = new THREE.Group(), halves = [new THREE.Group(), new THREE.Group()], cols = [0x8fb0f5, 0xf0b48a];
+    [1, -1].forEach(function (sg, h) {
+      spec.F.forEach(function (f) {
+        var c = clipPoly(f.map(function (vi) { return spec.V[vi]; }), pl, sg);
+        if (c) { halves[h].add(polyMesh(c, cols[h], 0.55)); halves[h].add(outline(c, 0x3a557f)); }
+      });
+      halves[h].add(polyMesh(poly, COL.warm, 0.75));
+      halves[h].add(outline(poly, 0x9a3f10));
+      grp.add(halves[h]);
+    });
+    spec.V.forEach(function (v, i) {
+      var s = pl.n.dot(v) - pl.d, h = s < -1e-6 ? 1 : 0;
+      var sp = labelSprite(spec.names[i], '#2c3f66', 0.4);
+      sp.position.copy(v).add(new THREE.Vector3(v.x, v.y * 0.6, v.z).normalize().multiplyScalar(0.33));
+      halves[h].add(sp);
+    });
+    SB.cut = { group: grp, halves: halves, n: pl.n, apart: false, poly: poly };
+    SB.view = 'cut';
+    sbRender();
+    animateApart(true);
+    sbStatus('ok', 'Қима — ' + POLY[poly.length] + ' (' + poly.length + ' төбе). Фигура екі бөлікке бөлінді. Қиманың әр қабырғасы фигураның бір жағында жатыр.');
+  }
+  function animateApart(on) {
+    var c = SB.cut;
+    if (!c) return;
+    c.apart = on;
+    var t0 = performance.now(), from = c.off || 0, to = on ? 0.5 : 0;
+    (function tick(now) {
+      var k = Math.min(1, (now - t0) / 350);
+      c.off = from + (to - from) * k;
+      c.halves[0].position.copy(c.n).multiplyScalar(c.off);
+      c.halves[1].position.copy(c.n).multiplyScalar(-c.off);
+      if (k < 1 && SB.cut === c) requestAnimationFrame(tick);
+    })(t0);
+    $('#sb-cut').textContent = on ? 'Жинау' : 'Бөліп көрсету';
+  }
+
+  /* ----- step-by-step analysis ----- */
+  function sbAnalyze() {
+    var E = makeEngine(SB.spec, sbGP());
+    if (E.error) return;
+    E.runAll();
+    SB.E = E; SB.stepI = 0; SB.view = 'analysis';
+    sbRender();
+    anShow();
+  }
+  function anShow() {
+    var E = SB.E, i = SB.stepI, st = E.steps[i];
+    $('#an-count').textContent = 'Қадам ' + (i + 1) + ' / ' + E.steps.length;
+    $('#an-text').textContent = st.text;
+    $('#an-prev').disabled = i === 0;
+    $('#an-next').disabled = i === E.steps.length - 1;
+    var tag = { join: 'Екі нүкте бір жақта', parallel: 'Параллель жақтар', trace: 'Із әдісі', fallback: 'Қыр мен жазықтық', face: 'Ерекше жағдай', final: 'Қорытынды' }[st.kind];
+    $('#an-kind').textContent = tag;
+    sbRender();
+  }
+
+  /* ----- own construction ----- */
+  function ownStart() {
+    var E = makeEngine(SB.spec, sbGP());
+    if (E.error) { sbStatus('bad', 'Бұл нүктелерден қима шықпайды.'); return; }
+    SB.E = E; SB.view = 'own'; SB.sel = -1; SB.hints = 0; SB.awarded = false;
+    $('#own-log').innerHTML = '';
+    ownAuto();
+    SB.fig.group.visible = true;
+    sbRender();
+    ownMsg('', 'Қиманың қабырғаларын өзің тұрғыз. Бір жақта жатқан екі нүктені таңда: түзу жүргізіледі.');
+    ownProgress();
+    if (SB.E.isFinal()) ownDone();
+  }
+  function ownAuto() {
+    var E = SB.E, g = 0, out = false;
+    while (!E.isFinal() && !E.canJoin() && g++ < 40) {
+      var st = E.step();
+      if (st) { ownLog('Жүйе', st.text); out = true; }
+    }
+    return out;
+  }
+  function ownLog(who, text) {
+    var d = el('div', 'logline'), b = el('b', '', who + ': ');
+    d.appendChild(b); d.appendChild(document.createTextNode(text));
+    $('#own-log').appendChild(d);
+    d.scrollIntoView({ block: 'nearest' });
+  }
+  function ownMsg(cls, t) { var s = $('#own-status'); s.className = 'status ' + cls; s.textContent = t; }
+  function ownProgress() {
+    var p = SB.E.progress();
+    $('#own-prog').textContent = 'Жақтар: ' + Math.min(p.done, p.total) + ' / ' + p.total;
+  }
+  function ownPick(i) {
+    var E = SB.E;
+    if (!E || E.isFinal()) return;
+    if (SB.sel < 0) { SB.sel = i; sbRender(); ownMsg('', E.known[i].label + ' таңдалды. Екінші нүктені таңда.'); return; }
+    if (SB.sel === i) { SB.sel = -1; sbRender(); ownMsg('', 'Таңдау алынды.'); return; }
+    var a = SB.sel, r = E.userJoin(a, i);
+    SB.sel = -1;
+    if (!r.ok) { sbRender(); ownMsg('bad', r.msg); return; }
+    ownLog('Сен', r.step.text);
+    ownAuto();
+    sbRender();
+    ownProgress();
+    if (E.isFinal()) ownDone();
+    else ownMsg('ok', 'Дұрыс. Келесі түзуді жүргіз.');
+  }
+  function ownDone() {
+    var poly = SB.E.poly;
+    ownMsg('ok', 'Қима дайын: ' + POLY[poly.length] + ' (' + poly.length + ' төбе).');
+    if (!SB.awarded) {
+      SB.awarded = true;
+      var s = load(); s.xp += SB.hints ? 8 : 15; touchStreak(); save();
+    }
+  }
+  function ownTapXY(x, y) {
+    var best = -1, bd = 1e9;
+    SB.E.known.forEach(function (k, i) {
+      var p = V2.project(k.pos), d = Math.hypot(p.x - x, p.y - y);
+      if (d < bd) { bd = d; best = i; }
+    });
+    if (best >= 0 && bd < 30) ownPick(best);
+  }
+  function ownHint() {
+    var E = SB.E;
+    if (!E || E.isFinal()) return;
+    var h = E.hint();
+    if (!h) { ownMsg('', 'Бұл қадамда жүйе өзі көмектеседі.'); return; }
+    SB.hints++;
+    SB.sel = -1;
+    ownMsg('', 'Көмек: ' + h.text);
+    sbRender();
+    [h.a, h.b].forEach(function (i) {
+      var r = new THREE.Mesh(new THREE.SphereGeometry(0.17, 16, 12), new THREE.MeshLambertMaterial({ color: COL.warm, transparent: true, opacity: 0.4 }));
+      r.position.copy(E.known[i].pos); SB.dyn.add(r);
+    });
+    SB.fig.setFace(h.face, COL.sel, 0.32);
+  }
+  function ownSolve() {
+    var E = SB.E;
+    if (!E) return;
+    SB.hints++;
+    while (!E.isFinal()) { var st = E.step(); if (st) ownLog('Жүйе', st.text); else break; }
+    sbRender();
+    ownProgress();
+    ownDone();
+  }
+
+  function sbPreset(p) {
+    SB.kind = p.kind;
+    SB.dims = [1, 1, 1];
+    ['x', 'y', 'z'].forEach(function (a) { $('#dim-' + a).value = 1; $('#dim-' + a + '-v').textContent = '1'; });
+    Array.prototype.forEach.call($('#sb-figs').children, function (c) { c.classList.toggle('on', c.dataset.k === SB.kind); });
+    setMode(!!p.adv);
+    SB.pts = p.pts.slice();
+    sbBuild(false);
+    $('#sb-note').hidden = true;
+    if (p.own) ownStart();
+    else if (p.cut) sbDoCut();
+  }
+  /* ----- wiring ----- */
+  var figRow = $('#sb-figs');
+  SBFIGS.forEach(function (f) {
+    var b = el('button', 'btn small' + (f[0] === SB.kind ? ' on' : ''), f[1]);
+    b.type = 'button';
+    b.dataset.k = f[0];
+    b.addEventListener('click', function () {
+      SB.kind = f[0]; SB.pts = [];
+      Array.prototype.forEach.call(figRow.children, function (c) { c.classList.toggle('on', c === b); });
+      sbBuild(false);
+    });
+    figRow.appendChild(b);
+  });
+  ['x', 'y', 'z'].forEach(function (a, i) {
+    $('#dim-' + a).addEventListener('input', function () {
+      SB.dims[i] = parseFloat(this.value);
+      $('#dim-' + a + '-v').textContent = SB.dims[i].toFixed(2).replace(/0$/, '');
+      sbBuild(true);
+    });
+  });
+  $('#dims-reset').addEventListener('click', function () {
+    SB.dims = [1, 1, 1];
+    ['x', 'y', 'z'].forEach(function (a) { $('#dim-' + a).value = 1; $('#dim-' + a + '-v').textContent = '1'; });
+    sbBuild(true);
+  });
+  function setMode(adv) {
+    SB.adv = adv; SB.pts = [];
+    $('#mode-simple').setAttribute('aria-selected', adv ? 'false' : 'true');
+    $('#mode-adv').setAttribute('aria-selected', adv ? 'true' : 'false');
+    $('#sb-hint').textContent = adv
+      ? 'Кеңейтілген режим: нүктені төбеге, қырдың кез келген жеріне немесе жақтың ішіне қоя аласың. «Өзім тұрғызамын» түймесімен қиманы өзің тұрғызасың.'
+      : 'Қарапайым режим: нүктелер төбеге немесе қырдың ортасына қойылады. «Қию» түймесі қиманы көрсетеді, «Қадамдап талдау» тұрғызуды түсіндіреді.';
+    sbBuild(true);
+  }
+  $('#mode-simple').addEventListener('click', function () { setMode(false); });
+  $('#mode-adv').addEventListener('click', function () { setMode(true); });
+  $('#sb-cut').addEventListener('click', function () {
+    if (SB.view === 'cut') animateApart(!SB.cut.apart);
+    else sbDoCut();
+  });
+  $('#sb-analyze').addEventListener('click', sbAnalyze);
+  $('#sb-build').addEventListener('click', ownStart);
+  $('#sb-clear').addEventListener('click', function () { SB.pts = []; SB.view = 'build'; SB.cut = null; sbRender(); });
+  $('#sb-back').addEventListener('click', function () { SB.view = 'build'; SB.cut = null; SB.E = null; $('#sb-status').hidden = false; sbRender(); });
+  $('#an-prev').addEventListener('click', function () { if (SB.stepI > 0) { SB.stepI--; anShow(); } });
+  $('#an-next').addEventListener('click', function () { if (SB.stepI < SB.E.steps.length - 1) { SB.stepI++; anShow(); } });
+  $('#own-hint').addEventListener('click', ownHint);
+  $('#own-solve').addEventListener('click', ownSolve);
+  $('#sb-reset').addEventListener('click', function () { if (V2) V2.reset(); });
+
+  /* ---------- AI: task text / photo -> 3D ---------- */
+  var AI = { sample: null, img: false, busy: false };
+  function aiNames(spec) {
+    var m = {};
+    spec.names.forEach(function (n, i) { m[n.replace(/[₀-₉]/g, function (c) { return String(SUBDIG.indexOf(c)); })] = i; });
+    return m;
+  }
+  var SUBDIG = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
+  function aiParseFace(spec, nm, name) {
+    var toks = String(name || '').replace(/[₀-₉]/g, function (c) { return String(SUBDIG.indexOf(c)); }).replace(/['’]/g, '1').match(/[A-FS]\d?/g) || [];
+    var ids = toks.map(function (t) { return nm[t]; });
+    if (ids.some(function (v) { return v === undefined; })) return null;
+    for (var fi = 0; fi < spec.F.length; fi++) {
+      var f = spec.F[fi];
+      if (f.length === ids.length && f.every(function (v) { return ids.indexOf(v) >= 0; })) return { fi: fi, ids: ids };
+    }
+    return null;
+  }
+  function aiApply(r) {
+    var kinds = { cube: 'cube', pyr4: 'pyr', tetra: 'tetra', prism3: 'tri' };
+    if (!r || !r.ok || !kinds[r.figure]) throw { code: 'unsupported', message: (r && r.reason) || '' };
+    SB.kind = kinds[r.figure];
+    var d = r.dims || {};
+    var cl = function (v) { v = parseFloat(v); return isFinite(v) ? Math.max(0.6, Math.min(1.6, v)) : 1; };
+    SB.dims = [cl(d.x), cl(d.y), cl(d.z)];
+    ['x', 'y', 'z'].forEach(function (a, i) { $('#dim-' + a).value = SB.dims[i]; $('#dim-' + a + '-v').textContent = SB.dims[i].toFixed(2).replace(/0$/, ''); });
+    Array.prototype.forEach.call(figRow.children, function (c) { c.classList.toggle('on', c.dataset.k === SB.kind); });
+    var spec = scaleSpec(sbBase(), SB.dims[0], SB.dims[1], SB.dims[2]), nm = aiNames(spec), pts = [], skipped = 0;
+    (r.points || []).forEach(function (p) {
+      if (pts.length >= 3) return;
+      var o = null;
+      if (p.type === 'vertex' && nm[p.name] !== undefined) o = { t: 'v', i: nm[p.name] };
+      else if (p.type === 'edge' && nm[p.from] !== undefined && nm[p.to] !== undefined) {
+        var ei = edgeIdx(spec, nm[p.from], nm[p.to]);
+        if (ei >= 0) {
+          var t = Math.max(0, Math.min(1, parseFloat(p.t)));
+          if (!isFinite(t)) t = 0.5;
+          var u = spec.edges[ei].a === nm[p.from] ? t : 1 - t;
+          o = (u < 0.01 || u > 0.99) ? { t: 'v', i: u < 0.01 ? spec.edges[ei].a : spec.edges[ei].b } : { t: 'e', i: ei, u: u };
+        }
+      } else if (p.type === 'face') {
+        var pf = aiParseFace(spec, nm, p.face);
+        if (pf) {
+          var ws = pf.ids.map(function (id, k) { var w = p.w && parseFloat(p.w[k]); return isFinite(w) && w > 0 ? w : (p.w ? 0 : 1); });
+          var sm = ws.reduce(function (s, v) { return s + v; }, 0) || 1;
+          var fv = spec.F[pf.fi];
+          o = { t: 'f', fi: pf.fi, w: fv.map(function (v) { var k = pf.ids.indexOf(v); return ws[k] / sm; }) };
+        }
+      }
+      if (o) pts.push(o); else skipped++;
+    });
+    setMode(true);
+    SB.pts = pts;
+    sbBuild(false);
+    sbTab('sec');
+    var note = $('#sb-note');
+    note.hidden = false;
+    note.textContent = (r.summary ? r.summary + ' ' : '') + 'Нүктелер: ' + pts.length + ' / 3' + (skipped ? ' (' + skipped + ' нүктені орналастыра алмадым)' : '') + '. AI қателесуі мүмкін: суретті есеп шарттарымен салыстыр.' + (pts.length < 3 ? ' Қалған нүктені өзің қой.' : ' «Қию» немесе «Өзім тұрғызамын» түймесін бас.');
+  }
+  var AI_PROMPT = [
+    'You convert a school stereometry problem (Kazakh/Russian/English text and/or a photo of a drawing) into a JSON description of a figure and up to 3 points that define a cutting plane.',
+    'Supported figures only: "cube" (also a rectangular box: use dims), "pyr4" (regular quadrilateral pyramid, base ABCD, apex S), "tetra" (triangular pyramid / tetrahedron, base ABC, apex S), "prism3" (right triangular prism ABCA1B1C1).',
+    'Vertex naming: cube/box and prisms use A,B,C,D (bottom, in cyclic order) and A1,B1,C1,D1 (top, A1 above A). Pyramids use base letters and S as apex. Rename vertices from the task to this scheme if the task uses other letters (keep the same geometric roles).',
+    'dims: relative proportions x (along AB), y (height), z (along BC), each 0.6..1.6, default 1. Use only when the task gives clear ratios.',
+    'points (max 3, in the order the task lists them): {"type":"vertex","name":"A1"} | {"type":"edge","from":"B","to":"C","t":0.5} (t = fraction of the way from "from" to "to", e.g. midpoint 0.5, "BM:MC=1:2" gives from B, t 0.333) | {"type":"face","face":"ABCD","w":[1,1,1,1]} (w = positive weights for the face vertices in the order written; equal weights = face centre).',
+    'If the task cannot be expressed with these figures, answer {"ok":false,"reason":"<one short sentence in Kazakh>"}.',
+    'Answer with JSON only: {"ok":true,"figure":"cube","dims":{"x":1,"y":1,"z":1},"points":[...],"summary":"<one short sentence in Kazakh: what the task asks>"}'
+  ].join('\n');
+  function aiErr(e) {
+    var c = e && e.code;
+    if (c === 'unsupported') return 'Бұл есепті қолдау көрсетілетін фигураларға ауыстыра алмадым.' + (e.message ? ' ' + e.message : '') + ' Фигураны өзің таңда да, нүктелерді қой.';
+    if (c === 'rate_limited') return 'Сұраныс тым жиі. Біраз күтіп, қайта көр.';
+    if (c === 'not_granted') return 'Рұқсат берілмеді, сондықтан AI қолжетімсіз.';
+    if (c === 'cancelled') return 'Тоқтатылды.';
+    if (c === 'invalid_json') return 'Жауап дұрыс форматта келмеді. Есепті қысқартып, қайта көр.';
+    return 'Қазір орындалмады. Кейінірек қайта көр.';
+  }
+  function aiRun() {
+    if (!AI.sample || AI.busy) return;
+    var txt = $('#ai-text').value.trim(), file = $('#ai-photo').files && $('#ai-photo').files[0];
+    var st = $('#ai-status');
+    if (!txt && !file) { st.className = 'status bad'; st.textContent = 'Есептің мәтінін жаз немесе сурет таңда.'; st.hidden = false; return; }
+    AI.busy = true;
+    $('#ai-go').disabled = true;
+    st.className = 'status'; st.textContent = 'Есепті талдап жатырмын…'; st.hidden = false;
+    var input = AI_PROMPT + '\n\nTask text:\n' + (txt || '(see the attached photo)');
+    var opts = { cache: false };
+    if (file && AI.img) opts.images = [file];
+    AI.sample.json(input, opts).then(function (r) {
+      aiApply(r);
+      st.hidden = true;
+    }).catch(function (e) {
+      st.className = 'status bad'; st.textContent = aiErr(e); st.hidden = false;
+    }).then(function () { AI.busy = false; $('#ai-go').disabled = false; });
+  }
+  (function aiInit() {
+    try {
+      if (!(window.claude && window.claude.use)) return;
+      window.claude.use('sample').then(function (s) {
+        if (!s) return;
+        AI.sample = s;
+        $('#sb-tab-ai').hidden = false;
+        $('#sb-tabs').classList.add('three');
+        return Promise.resolve(s.limits ? s.limits() : null).then(function (l) {
+          AI.img = !!(l && l.images);
+          $('#ai-photo-wrap').hidden = !AI.img;
+          if (AI.img && l.images.mediaTypes) $('#ai-photo').accept = l.images.mediaTypes.join(',');
+        }).catch(function () {});
+      }).catch(function () {});
+    } catch (e) {}
+  })();
+  $('#ai-go').addEventListener('click', aiRun);
+
+  /* ---------- sandbox: nets ---------- */
+  var ROWS = 5, COLS = 6;
+  var NCOL = ['#3b6fe0', '#e0832e', '#1f9d73', '#cf4f7e', '#7b5cd6', '#a88413'];
+  var sel = new Set(), cellEls = [];
+  var gridEl = $('#grid');
+  for (var r = 0; r < ROWS; r++) {
+    for (var c = 0; c < COLS; c++) {
+      (function (r, c) {
+        var b = el('button', 'cell');
+        b.type = 'button';
+        b.setAttribute('aria-label', 'Ұяшық ' + (r + 1) + '-қатар, ' + (c + 1) + '-баған');
+        b.addEventListener('click', function () {
+          var k = r + ',' + c;
+          if (sel.has(k)) sel.delete(k);
+          else if (sel.size >= 6) { netStatus('bad', 'Жазбада 6 шаршы ғана болады. Алдымен біреуін өшір.'); return; }
+          else sel.add(k);
+          updateNet();
+        });
+        gridEl.appendChild(b);
+        cellEls.push(b);
+      })(r, c);
+    }
+  }
+  var PRESETS = [
+    ['Крест', [[0, 1], [1, 0], [1, 1], [1, 2], [1, 3], [2, 1]]],
+    ['Баспалдақ', [[0, 0], [0, 1], [1, 1], [1, 2], [2, 2], [2, 3]]],
+    ['Түзу жолақ', [[2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5]]],
+    ['2×3 тіктөртбұрыш', [[1, 1], [1, 2], [1, 3], [2, 1], [2, 2], [2, 3]]]
+  ];
+  PRESETS.forEach(function (p) {
+    var b = el('button', 'btn small', p[0]);
+    b.type = 'button';
+    b.addEventListener('click', function () { sel = new Set(p[1].map(function (x) { return x[0] + ',' + x[1]; })); updateNet(); });
+    $('#presets').appendChild(b);
+  });
+  var clr = el('button', 'btn small', 'Тазалау');
+  clr.type = 'button';
+  clr.addEventListener('click', function () { sel = new Set(); updateNet(); });
+  $('#presets').appendChild(clr);
+  function netStatus(cls, text) { var s = $('#nstatus'); s.className = 'status ' + cls; s.textContent = text; }
+  function digitTexture(n, color) {
+    var cv = document.createElement('canvas');
+    cv.width = 128; cv.height = 128;
+    var g = cv.getContext('2d');
+    g.fillStyle = color; g.fillRect(0, 0, 128, 128);
+    if (n) {
+      g.fillStyle = '#ffffff';
+      g.font = '800 78px Nunito, Arial, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(String(n), 64, 70);
+    }
+    return new THREE.CanvasTexture(cv);
+  }
+  var FACE_TO_MAT = { 0: 2, 1: 3, 2: 5, 3: 4, 4: 0, 5: 1 };
+  function drawNetCube(res) {
+    if (!V3) return;
+    V3.clear();
+    var mats = [];
+    for (var i = 0; i < 6; i++) mats.push(new THREE.MeshLambertMaterial({ map: digitTexture(0, '#dfe6f3') }));
+    if (res && res.ok) res.order.forEach(function (o) { mats[FACE_TO_MAT[o.face]] = new THREE.MeshLambertMaterial({ map: digitTexture(o.n, NCOL[o.n - 1]) }); });
+    var geo = new THREE.BoxGeometry(2, 2, 2);
+    V3.root.add(new THREE.Mesh(geo, mats));
+    V3.root.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x28406b })));
+  }
+  function updateNet() {
+    var cells = Array.from(sel).map(function (k) { return k.split(',').map(Number); });
+    var res = checkNet(cells);
+    var byKey = {};
+    (res.order || []).forEach(function (o) { byKey[o.r + ',' + o.c] = o; });
+    cellEls.forEach(function (e, i) {
+      var r = Math.floor(i / COLS), c = i % COLS, k = r + ',' + c;
+      e.className = 'cell'; e.style.background = ''; e.style.borderColor = ''; e.textContent = '';
+      if (sel.has(k)) {
+        e.classList.add('on');
+        if (res.ok && byKey[k]) { e.style.background = NCOL[byKey[k].n - 1]; e.style.borderColor = 'rgba(0,0,0,0.25)'; e.textContent = byKey[k].n; }
+      }
+    });
+    if (res.reason === 'dup' && res.order) {
+      res.order.forEach(function (o) {
+        if (o.n === res.a || o.n === res.b) { var e = cellEls[o.r * COLS + o.c]; e.classList.remove('on'); e.classList.add('bad'); }
+      });
+    }
+    var opp = $('#opp');
+    if (res.ok) {
+      netStatus('ok', 'Бұл куб жазбасы. Әр шаршы өз түсімен кубтың бір жағына түседі.');
+      opp.innerHTML = 'Қарама-қарсы жақтар: <b>' + res.opp.map(function (p) { return p[0] + ' мен ' + p[1]; }).join('</b>, <b>') + '</b>.';
+    } else {
+      opp.textContent = '';
+      var msg = {
+        few: 'Тағы ' + res.need + ' шаршы таңда. Куб жазбасы 6 шаршыдан тұрады.',
+        many: 'Артық шаршы бар. Куб жазбасы 6 шаршыдан тұрады.',
+        block: 'Төрт шаршы 2×2 болып тұр. Кубтың бір төбесінде тек 3 жақ түйіседі, сондықтан бұл жиналмайды.',
+        disc: 'Шаршылар бір-бірімен қабырғасы арқылы жалғанбаған. Жазба біртұтас болуы керек.',
+        dup: 'Жиналмайды: қызыл шаршылар кубтың бір жағына түседі, ал бір жаққа екі шаршы тимейді.'
+      }[res.reason];
+      netStatus(res.reason === 'few' ? '' : 'bad', msg);
+    }
+    drawNetCube(res);
+  }
+  $('#sb-tab-sec').addEventListener('click', function () { sbTab('sec'); });
+  $('#sb-tab-net').addEventListener('click', function () { sbTab('net'); });
+  $('#sb-tab-ai').addEventListener('click', function () { sbTab('ai'); });
+  function sbTab(n) {
+    $('#sb-sec').hidden = n !== 'sec';
+    $('#sb-net').hidden = n !== 'net';
+    $('#sb-ai').hidden = n !== 'ai';
+    ['sec', 'net', 'ai'].forEach(function (t) { $('#sb-tab-' + t).setAttribute('aria-selected', t === n ? 'true' : 'false'); });
+  }
+
+  /* ---------- Сөздік (терминдер) ---------- */
+  var GLOSS = [
+    { g: 'Негіздер', items: [
+      ['Аксиома', 'Дәлелдеусіз қабылданатын бастапқы ереже.'],
+      ['Теорема', 'Дәлелдеуді қажет ететін тұжырым.'],
+      ['Үш нүкте аксиомасы', 'Бір түзуде жатпайтын үш нүкте арқылы бір ғана жазықтық өтеді.'],
+      ['Түзудің жазықтықта жатуы', 'Түзудің екі нүктесі жазықтықта жатса, түзудің бәрі сол жазықтықта жатады.'],
+      ['Жазықтықтардың қиылысуы', 'Екі жазықтықтың ортақ нүктесі болса, олар сол нүкте арқылы өтетін түзу бойымен қиылысады.']
+    ] },
+    { g: 'Түзулердің орналасуы', items: [
+      ['Қиылысатын түзулер', 'Бір жазықтықта жатып, бір ғана ортақ нүктесі бар түзулер.'],
+      ['Параллель түзулер', 'Бір жазықтықта жатып, қиылыспайтын түзулер.'],
+      ['Айқас түзулер', 'Бір жазықтықта жатпайтын, қиылыспайтын түзулер.'],
+      ['Айқас түзулер белгісі', 'Бір түзу жазықтықты нүктеде қиса, ал екінші түзу сол нүкте арқылы өтпесе, олар айқас.']
+    ] },
+    { g: 'Параллельдік', items: [
+      ['Түзу мен жазықтықтың параллельдігі', 'Түзу мен жазықтықтың ортақ нүктесі жоқ.'],
+      ['Түзу мен жазықтық параллельдігінің белгісі', 'Түзу жазықтықтағы бір түзуге параллель болса, ол жазықтыққа да параллель.'],
+      ['Жазықтықтардың параллельдігі', 'Екі жазықтықтың ортақ нүктесі жоқ.'],
+      ['Жазықтықтар параллельдігінің белгісі', 'Бір жазықтықтың қиылысатын екі түзуі екінші жазықтықтың екі түзуіне параллель болса, жазықтықтар параллель.'],
+      ['Параллель жазықтықтарды қию', 'Үшінші жазықтық екі параллель жазықтықты параллель түзулер бойымен қияды.']
+    ] },
+    { g: 'Перпендикулярлық', items: [
+      ['Түзу мен жазықтықтың перпендикулярлығы', 'Түзу жазықтықтағы өтетін нүктесі арқылы жүргізілген кез келген түзуге перпендикуляр.'],
+      ['Перпендикулярлықтың белгісі', 'Түзу жазықтықтағы қиылысатын екі түзуге перпендикуляр болса, ол жазықтыққа перпендикуляр.'],
+      ['Перпендикуляр', 'Нүктеден жазықтыққа түсірілген, жазықтыққа перпендикуляр кесінді.'],
+      ['Көлбеу', 'Нүктеден жазықтыққа жүргізілген, перпендикуляр емес кесінді.'],
+      ['Проекция', 'Нүктеден жазықтыққа түсірілген перпендикулярдың табаны; көлбеудің проекциясы — көлбеудің ұшын перпендикулярдың табанымен қосқан кесінді.'],
+      ['Үш перпендикуляр туралы теорема', 'Көлбеу жазықтықтағы түзуге перпендикуляр болса, оның проекциясы да сол түзуге перпендикуляр, және керісінше.'],
+      ['Перпендикуляр жазықтықтар', 'Олардың арасындағы екіжақты бұрыш 90° болатын жазықтықтар.'],
+      ['Жазықтықтар перпендикулярлығының белгісі', 'Жазықтық екінші жазықтыққа перпендикуляр түзу арқылы өтсе, жазықтықтар перпендикуляр.']
+    ] },
+    { g: 'Бұрыштар', items: [
+      ['Түзулер арасындағы бұрыш', 'Айқас түзулер үшін: қиылысатындай етіп жылжытқан түзулердің арасындағы бұрыш (90°-тан аспайды).'],
+      ['Түзу мен жазықтық арасындағы бұрыш', 'Көлбеу мен оның жазықтықтағы проекциясы арасындағы бұрыш.'],
+      ['Екіжақты бұрыш', 'Ортақ түзуден (қырынан) шығатын екі жарты жазықтықтан құралған фигура.'],
+      ['Екіжақты бұрыштың сызықтық бұрышы', 'Қырға перпендикуляр жүргізілген екі сәуленің арасындағы бұрыш; ол екіжақты бұрыштың өлшемін береді.']
+    ] },
+    { g: 'Қашықтықтар', items: [
+      ['Нүктеден жазықтыққа дейінгі қашықтық', 'Нүктеден жазықтыққа түсірілген перпендикулярдың ұзындығы.'],
+      ['Параллель жазықтықтар арасындағы қашықтық', 'Бір жазықтықтың кез келген нүктесінен екінші жазықтыққа дейінгі қашықтық.'],
+      ['Түзуден параллель жазықтыққа дейінгі қашықтық', 'Түзудің кез келген нүктесінен жазықтыққа дейінгі қашықтық.'],
+      ['Айқас түзулердің ортақ перпендикуляры', 'Екі айқас түзуді қиып, екеуіне де перпендикуляр болатын кесінді; оның ұзындығы — айқас түзулердің арақашықтығы.']
+    ] },
+    { g: 'Көпжақтар', items: [
+      ['Көпжақ', 'Беті көпбұрыштардан құралған дене. Көпбұрыштар — жақтары, қабырғалары — қырлары, төбелері — көпжақтың төбелері.'],
+      ['Дөңес көпжақ', 'Кез келген екі нүктесімен бірге оларды қосатын кесіндіні де қамтитын көпжақ.'],
+      ['Көпжақтың жазбасы', 'Көпжақтың бетін қырлары бойымен кесіп, жазықтыққа жазғанда шығатын фигура.'],
+      ['Куб', 'Алты жағы да квадрат болатын көпжақ.'],
+      ['Параллелепипед', 'Алты жағы да параллелограмм, қарама-қарсы жақтары қос-қостан параллель көпжақ.'],
+      ['Тік параллелепипед', 'Бүйір қырлары табанына перпендикуляр параллелепипед.'],
+      ['Көпжақтың диагоналі', 'Бір жағында жатпайтын екі төбесін қосатын кесінді.'],
+      ['Призма', 'Екі табаны параллель жазықтықтарда жатқан тең көпбұрыштар, ал бүйір жақтары параллелограмдар болатын көпжақ.'],
+      ['Тік призма', 'Бүйір қырлары табандарына перпендикуляр призма.'],
+      ['Дұрыс призма', 'Табандары дұрыс көпбұрыш болатын тік призма.'],
+      ['Призманың биіктігі', 'Бір табанының нүктесінен екінші табан жазықтығына түсірілген перпендикуляр.'],
+      ['Пирамида', 'Бір жағы көпбұрыш (табан), қалған жақтары ортақ төбесі бар үшбұрыштар болатын көпжақ.'],
+      ['Пирамиданың апофемасы', 'Дұрыс пирамиданың төбесінен жүргізілген бүйір жағының биіктігі.'],
+      ['Дұрыс пирамида', 'Табанында дұрыс көпбұрыш жатқан және барлық бүйір қырлары тең пирамида.'],
+      ['Қиық пирамида', 'Пирамиданы табанына параллель жазықтықпен қиғанда табан мен қима арасында қалатын бөлігі.'],
+      ['Бүйір бет және толық бет', 'Бүйір бет — бүйір жақтарының ауданы, толық бет — бүйір бет пен табандардың ауданының қосындысы.']
+    ] },
+    { g: 'Көпжақты бұрыш, Эйлер, дұрыс көпжақтар', items: [
+      ['Көпжақты бұрыш', 'Ортақ төбесі бар жазық бұрыштардан құралған бет пен ол шектейтін кеңістік бөлігі.'],
+      ['Көпжақты бұрыштың қасиеті', 'Үшжақты бұрыштың кез келген жазық бұрышы қалған екеуінің қосындысынан кіші; жазық бұрыштарының қосындысы 360°-тан кіші.'],
+      ['Эйлер теоремасы', 'Кез келген дөңес көпжақта төбелер саны мен жақтар санының қосындысынан қырлар санын алсақ, 2 шығады: Т − Қ + Ж = 2.'],
+      ['Дұрыс көпжақ', 'Жақтары тең дұрыс көпбұрыштар болып, әр төбесіне бірдей жақ саны түйісетін дөңес көпжақ.'],
+      ['Тетраэдр', 'Дұрыс көпжақ: 4 жағы дұрыс үшбұрыш.'],
+      ['Гексаэдр', 'Дұрыс көпжақ: 6 жағы квадрат, яғни куб.'],
+      ['Октаэдр', 'Дұрыс көпжақ: 8 жағы дұрыс үшбұрыш, әр төбесінде 4 жақ түйіседі.'],
+      ['Додекаэдр', 'Дұрыс көпжақ: 12 жағы дұрыс бесбұрыш.'],
+      ['Икосаэдр', 'Дұрыс көпжақ: 20 жағы дұрыс үшбұрыш, әр төбесінде 5 жақ түйіседі.']
+    ] },
+    { g: 'Қималар', items: [
+      ['Қиюшы жазықтық', 'Көпжақты кесу үшін жүргізілетін жазықтық.'],
+      ['Көпжақтың қимасы', 'Қиюшы жазықтық пен көпжақтың қиылысуынан шыққан көпбұрыш.'],
+      ['Қиюшы жазықтықтың ізі', 'Қиюшы жазықтықтың көпжақ жағының жазықтығымен қиылысу түзуі.'],
+      ['Параллелепипед қимасының қасиеті', 'Қиюшы жазықтық қарама-қарсы жақтарын қисаң, қима қабырғалары параллель болады.']
+    ] },
+    { g: 'Көлем және бет', items: [
+      ['Призманың көлемі', 'V = S·h: табан ауданы мен биіктігінің көбейтіндісі.'],
+      ['Пирамиданың көлемі', 'V = ⅓·S·h: табан ауданы мен биіктігі көбейтіндісінің үштен бірі.'],
+      ['Дұрыс пирамиданың бүйір беті', 'S = ½·p·l: табан периметрі мен апофема көбейтіндісінің жартысы.'],
+      ['Көпжақ бетінің ауданы', 'Оның жазбасының ауданына тең, яғни барлық жақтарының ауданының қосындысы.']
+    ] }
+  ];
+  var GLOSS_ALL = [];
+  GLOSS.forEach(function (gr) { gr.items.forEach(function (it) { GLOSS_ALL.push({ g: gr.g, t: it[0], d: it[1] }); }); });
+
+  function glossQuiz() {
+    origin = 'gloss';
+    var pool = shuffle(GLOSS_ALL.slice()).slice(0, 5);
+    var f = pool.map(function (e) {
+      return function () {
+        var same = GLOSS_ALL.filter(function (x) { return x.g === e.g && x.t !== e.t; });
+        var other = GLOSS_ALL.filter(function (x) { return x.g !== e.g; });
+        var wr = shuffle(same).slice(0, 3).concat(shuffle(other)).map(function (x) { return x.t; });
+        var m = mix(e.t, wr);
+        return choiceStep({
+          chip: 'Сөздік · ' + e.g,
+          prompt: 'Қай терминнің анықтамасы: «' + e.d + '»?',
+          hint: 'Дұрыс терминді таңда.',
+          answers: m.answers, correct: m.correct,
+          solution: e.t + ' — ' + e.d,
+          build: function (viewer) { return openFig(viewer, makeSpec('cube', 4), 0.05, -0.55, false); }
+        });
+      };
+    });
+    play({ record: function (c, t, s) { var u = s.ubt.gloss || { solved: 0, correct: 0 }; u.solved += t; u.correct += c; s.ubt.gloss = u; } }, f);
+  }
+  function renderGloss() {
+    var q = ($('#gl-q').value || '').trim().toLowerCase();
+    var wrap = $('#gl-list');
+    wrap.innerHTML = '';
+    var n = 0;
+    GLOSS.forEach(function (gr) {
+      var items = gr.items.filter(function (it) { return !q || (it[0] + ' ' + it[1]).toLowerCase().indexOf(q) >= 0; });
+      if (!items.length) return;
+      n += items.length;
+      var card = el('details', 'card gl');
+      if (q) card.open = true;
+      card.appendChild(el('summary', '', gr.g + ' · ' + items.length));
+      items.forEach(function (it) {
+        var d = el('div', 'gl-it');
+        d.appendChild(el('b', '', it[0]));
+        d.appendChild(el('p', 'hint', it[1]));
+        card.appendChild(d);
+      });
+      wrap.appendChild(card);
+    });
+    if (!n) wrap.appendChild(el('p', 'hint', 'Ештеңе табылмады.'));
+  }
+  $('#gl-q').addEventListener('input', renderGloss);
+  $('#gl-quiz').addEventListener('click', glossQuiz);
+
+  /* ---------- boot ---------- */
+  function noGL(id) {
+    var c = $(id), st = c.parentNode;
+    st.innerHTML = '<div class="nogl">3D көрсету бұл браузерде қолжетімсіз. Басқа браузерде ашып көр.</div>';
+  }
+  try {
+    if (!GL) throw new Error('three');
+    V1 = Viewer($('#cv1'));
+    V2 = Viewer($('#cv2'));
+    V3 = Viewer($('#cv3'));
+    V3.setInitial(0.5, -0.6);
+  } catch (e) {
+    ['#cv1', '#cv2', '#cv3'].forEach(function (id) { if ($(id)) noGL(id); });
+    V1 = V2 = V3 = null;
+  }
+  sel = new Set(PRESETS[0][1].map(function (x) { return x[0] + ',' + x[1]; }));
+  updateNet();
+  sbBuild();
+  showView('course');
+})();
+</script>
+
+</body>
+</html>
